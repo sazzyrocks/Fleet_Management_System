@@ -96,7 +96,8 @@
 </head>
 
 <body>
-    <video id="successVideo" src="./video2.mp4" autoplay muted playsinline></video>
+    <!-- Audio unmuted with full volume -->
+    <video id="successVideo" src="./video2.mp4" autoplay playsinline></video>
 
     <div id="container">
         <img src="success.png" alt="success">
@@ -123,17 +124,32 @@
         }
 
         if (video) {
-            video.muted = true;
+            video.muted = false;
+            video.volume = 1.0;
 
-            // Video khatam hone ke baad hi payment done dikhega
+            // Video khatam hone ke baad payment done dikhega
             video.addEventListener('ended', showPaymentDone);
 
-            video.play().catch(function(e) {
-                console.log('Video play caught:', e);
-            });
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(function(e) {
+                    console.warn('Autoplay with sound needs user interaction or fallback:', e);
+                    video.muted = true;
+                    video.play().then(function() {
+                        const enableSound = function() {
+                            video.muted = false;
+                            video.volume = 1.0;
+                            document.removeEventListener('click', enableSound);
+                            document.removeEventListener('keydown', enableSound);
+                        };
+                        document.addEventListener('click', enableSound, { once: true });
+                        document.addEventListener('keydown', enableSound, { once: true });
+                    });
+                });
+            }
         }
 
-        // Failsafe: Video 16 seconds ki hai, agar ended event miss ho toh 16.5s pe show ho
+        // Failsafe: Video 16s ki hai, agar ended event miss ho toh 16.5s pe show ho
         setTimeout(showPaymentDone, 16500);
     </script>
 </body>
