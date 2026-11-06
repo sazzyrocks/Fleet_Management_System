@@ -54,8 +54,8 @@ public class PaySuccessPageController extends Controller {
             return;
         }
 
-        // Auto-navigate to orders after video ends (~16s)
-        autoNavTimer = new PauseTransition(Duration.seconds(16));
+        // Auto-navigate to orders after video finishes (~16s) and user sees payment done
+        autoNavTimer = new PauseTransition(Duration.seconds(30));
         autoNavTimer.setOnFinished(e -> goToOrders());
         autoNavTimer.play();
 

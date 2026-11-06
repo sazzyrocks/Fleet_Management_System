@@ -44,27 +44,39 @@
             font-size: 22px;
             display: none;
             z-index: 10;
-            background: rgba(15, 23, 42, 0.85);
-            padding: 35px 55px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            background: rgba(15, 23, 42, 0.92);
+            padding: 40px 60px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.85);
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -45%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
         }
 
         img {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 12px;
+            width: 90px;
+            height: 90px;
+            margin-bottom: 14px;
         }
 
         button {
             color: white;
             background-color: #3c7eff;
-            padding: 12px 28px;
+            padding: 12px 30px;
             border: none;
-            border-radius: 6px;
-            margin-top: 18px;
-            font-size: 18px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 19px;
             font-weight: bold;
             box-shadow: 0 4px 15px rgba(60, 126, 255, 0.4);
             cursor: pointer;
@@ -77,44 +89,52 @@
         }
 
         p {
-            margin-top: 6px;
+            margin-top: 8px;
             letter-spacing: 0.5px;
         }
     </style>
 </head>
 
 <body>
-    <video id="successVideo" src="./video2.mp4" autoplay muted playsinline loop></video>
+    <video id="successVideo" src="./video2.mp4" autoplay muted playsinline></video>
 
     <div id="container">
         <img src="success.png" alt="success">
-        <p style="font-size: 26px; font-weight: bold; color: #4ade80;">Transaction Completed</p>
-        <p style="color: #cbd5e1;">Your car is confirmed and ready for pickup!</p>
+        <p style="font-size: 26px; font-weight: bold; color: #4ade80;">Payment Completed</p>
+        <p style="color: #cbd5e1;">Your car is confirmed and on the way!</p>
         <button onclick="buttonClickEvent()">View My Orders &rarr;</button>
     </div>
 
     <script>
         const video = document.getElementById('successVideo');
         const container = document.getElementById('container');
+        let shown = false;
+
+        function showPaymentDone() {
+            if (shown) return;
+            shown = true;
+            if (container) {
+                container.style.display = 'block';
+            }
+        }
 
         function buttonClickEvent() {
             alert("CLOSE_PAY_SUCCESS");
         }
 
-        // Play video immediately
         if (video) {
             video.muted = true;
+
+            // Video khatam hone ke baad hi payment done dikhega
+            video.addEventListener('ended', showPaymentDone);
+
             video.play().catch(function(e) {
                 console.log('Video play caught:', e);
             });
         }
 
-        // Show completed confirmation card after 6 seconds over the video
-        setTimeout(function() {
-            if (container) {
-                container.style.display = 'block';
-            }
-        }, 6000);
+        // Failsafe: Video 16 seconds ki hai, agar ended event miss ho toh 16.5s pe show ho
+        setTimeout(showPaymentDone, 16500);
     </script>
 </body>
 
