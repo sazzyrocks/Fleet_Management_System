@@ -65,6 +65,13 @@ public class LoadingPageController extends Controller {
     private void startBackgroundInitialization() {
         AsyncExecutor.getInstance().execute(() -> {
             try {
+                // Pre-fetch geolocation concurrently in background so Driver and Main maps have it ready instantly
+                com.example.car_rental_sys.concurrency.AsyncExecutor.getInstance().execute(() -> {
+                    try {
+                        com.example.car_rental_sys.service.ServiceFactory.getInstance().getGeoLocationService().fetchCurrentLocation();
+                    } catch (Exception ignored) {}
+                });
+
                 updateStatus("Verifying database schema...");
                 boolean dbReady = DatabaseInitializer.initializeDatabase();
                 if (dbReady) {

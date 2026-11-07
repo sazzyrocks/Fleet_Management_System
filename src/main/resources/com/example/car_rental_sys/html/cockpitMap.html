@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cockpit In-Cabin Navigation</title>
+
+  <!-- Local Leaflet Assets -->
+  <link rel="stylesheet" href="./leaflet.css" />
+  <script src="./leaflet.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #121b26;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #121b26;
+      z-index: 1;
+    }
+
+    /* Leaflet Tile Sizing & Blending */
+    .leaflet-tile {
+      position: absolute !important;
+      width: 256px !important;
+      height: 256px !important;
+      visibility: inherit !important;
+      mix-blend-mode: normal !important;
+    }
+
+    /* Top Action Bar in Cockpit */
+    .cockpit-toolbar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 10000;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      pointer-events: auto !important;
+    }
+
+    .cockpit-btn {
+      background: rgba(18, 27, 38, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .cockpit-btn:hover {
+      background: #165dff;
+      border-color: #165dff;
+    }
+
+    .cockpit-btn:active, .cockpit-btn.active {
+      background: #00b42a !important;
+      border-color: #00b42a !important;
+      box-shadow: 0 0 10px rgba(0, 180, 42, 0.6) !important;
+    }
+
+    .cockpit-btn.step-btn:active {
+      background: #722ed1 !important;
+      border-color: #722ed1 !important;
+    }
+
+    /* Car Marker Pulsing Halo */
+    .car-marker-container {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .car-halo {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(48, 250, 143, 0.35);
+      border: 2px solid #30fa8f;
+      animation: pulseHalo 1.8s infinite ease-out;
+    }
+
+    @keyframes pulseHalo {
+      0% {
+        transform: scale(0.6);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+    }
+
+    .car-icon-badge {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #00b42a;
+      border: 2px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      box-shadow: 0 0 10px rgba(0, 180, 42, 0.9);
+      z-index: 2;
+    }
+
+    /* Start and End Pin */
+    .pin-badge {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <!-- Cockpit Mini-Toolbar -->
+  <div class="cockpit-toolbar" id="cockpitToolbar">
+    <button class="cockpit-btn" id="btnDrive" onclick="toggleDrive()">🚘 Drive</button>
+    <button class="cockpit-btn step-btn" id="btnStep" onclick="stepForward()">⏭ +2 km</button>
+    <button class="cockpit-btn" id="btnLayer" onclick="toggleLayer()">🛰️ Sat</button>
+  </div>
+
+  <script>
+    let map = null;
+    let currentTileLayer = null;
+    let currentLyr = 'm'; // 'm' = roadmap, 'y' = satellite
+    let routePolyline = null;
+    let carMarker = null;
+    let startMarker = null;
+    let endMarker = null;
+
+    let routeCoords = [];
+    let currentIdx = 0;
+    let driveInterval = null;
+    let totalDistKm = 21.6;
+
+    // Parse URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    let startLat = parseFloat(urlParams.get('startLat')) || 16.4632;
+    let startLng = parseFloat(urlParams.get('startLng')) || 80.5078;
+    let destLat = parseFloat(urlParams.get('destLat')) || 16.5175;
+    let destLng = parseFloat(urlParams.get('destLng')) || 80.6200;
+    let startTitle = urlParams.get('startName') ? decodeURIComponent(urlParams.get('startName')) : 'SRM AP';
+    let destTitle = urlParams.get('destName') ? decodeURIComponent(urlParams.get('destName')) : 'Vijayawada Junction';
+
+    function buildTileLayer(lyr) {
+      const url = `https://mt{s}.google.com/vt/lyrs=${lyr}&x={x}&y={y}&z={z}`;
+      const layer = L.tileLayer(url, {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
+        maxNativeZoom: 19,
+        tileSize: 256,
+        updateWhenIdle: false,
+        updateInterval: 100,
+        keepBuffer: 6,
+        crossOrigin: true
+      });
+
+      layer.on('tileerror', function(error) {
+        const tile = error.tile;
+        const retryCount = (tile._retries || 0) + 1;
+        tile._retries = retryCount;
+
+        if (retryCount <= 2) {
+          setTimeout(() => {
+            const sub = ['0', '1', '2', '3'][Math.floor(Math.random() * 4)];
+            tile.src = `https://mt${sub}.google.com/vt/lyrs=${lyr}&x=${error.coords.x}&y=${error.coords.y}&z=${error.coords.z}&_r=${retryCount}`;
+          }, 250 * retryCount);
+        } else if (lyr === 'm') {
+          tile.src = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${error.coords.z}/${error.coords.x}/${error.coords.y}.png`;
+        }
+      });
+
+      return layer;
+    }
+
+    function initCockpitMap() {
+      if (typeof L === 'undefined') return;
+
+      const centerLat = (startLat + destLat) / 2;
+      const centerLng = (startLng + destLng) / 2;
+
+      map = L.map('map', {
+        center: [centerLat, centerLng],
+        zoom: 12,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false,
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true
+      });
+
+      currentTileLayer = buildTileLayer(currentLyr).addTo(map);
+
+      // Start Marker
+      const startIcon = L.divIcon({
+        className: 'start-pin',
+        html: '<div class="pin-badge" style="background: #165dff;"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      startMarker = L.marker([startLat, startLng], { icon: startIcon }).addTo(map);
+
+      // Destination Marker (Pickup)
+      const endIcon = L.divIcon({
+        className: 'end-pin',
+        html: '<div class="pin-badge" style="background: #f53f3f;"></div>',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      endMarker = L.marker([destLat, destLng], { icon: endIcon }).addTo(map);
+
+      // Car Marker
+      const carIcon = L.divIcon({
+        className: 'car-icon',
+        html: '<div class="car-marker-container"><div class="car-halo"></div><div class="car-icon-badge">🚘</div></div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      carMarker = L.marker([startLat, startLng], { icon: carIcon, zIndexOffset: 5000 }).addTo(map);
+
+      // Prevent Leaflet from intercepting toolbar buttons
+      const toolbar = document.getElementById('cockpitToolbar');
+      if (toolbar && L.DomEvent) {
+        L.DomEvent.disableClickPropagation(toolbar);
+        L.DomEvent.disableScrollPropagation(toolbar);
+      }
+
+      // Fetch Real Road Navigation
+      fetchLiveRoute(startLng, startLat, destLng, destLat);
+
+      setTimeout(() => {
+        if (map) map.invalidateSize(false);
+      }, 200);
+    }
+
+    function fetchLiveRoute(sLng, sLat, dLng, dLat) {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?overview=full&geometries=geojson`;
+
+      fetch(osrmUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            totalDistKm = parseFloat((route.distance / 1000).toFixed(1));
+            routeCoords = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            renderPolyline();
+          } else {
+            fallbackRoute();
+          }
+        })
+        .catch(() => fallbackRoute());
+    }
+
+    function fallbackRoute() {
+      routeCoords = [
+        [startLat, startLng],
+        [16.4750, 80.5180],
+        [16.4880, 80.5310],
+        [16.4980, 80.5400],
+        [16.5040, 80.5650],
+        [16.5100, 80.5850],
+        [16.5070, 80.6050],
+        [16.5120, 80.6120],
+        [destLat, destLng]
+      ];
+      renderPolyline();
+    }
+
+    function renderPolyline() {
+      if (routePolyline) map.removeLayer(routePolyline);
+
+      routePolyline = L.polyline(routeCoords, {
+        color: '#165dff',
+        weight: 5,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+
+      // Fit route with nice padding for the in-cabin mini screen
+      map.fitBounds(routePolyline.getBounds(), {
+        padding: [30, 30],
+        maxZoom: 14,
+        animate: false
+      });
+
+      sendTelemetry();
+    }
+
+    function sendTelemetry() {
+      if (!routeCoords || routeCoords.length === 0) return;
+
+      const progressRatio = currentIdx / Math.max(1, routeCoords.length - 1);
+      const distLeft = Math.max(0, (totalDistKm * (1 - progressRatio))).toFixed(1);
+      const timeLeft = Math.max(1, Math.round(distLeft * 1.3));
+      const pct = Math.round(progressRatio * 100);
+
+      if (currentIdx >= routeCoords.length - 1) {
+        alert('ARRIVED');
+        stopDrive();
+        return;
+      }
+
+      // STEP:distLeft:timeLeft:progressPct
+      alert(`STEP:${distLeft} km:${timeLeft}:${pct}`);
+    }
+
+    function toggleDrive() {
+      const btn = document.getElementById('btnDrive');
+      if (driveInterval) {
+        stopDrive();
+      } else {
+        startDrive();
+      }
+    }
+
+    function startDrive() {
+      const btn = document.getElementById('btnDrive');
+      btn.innerText = '⏸ Pause';
+      btn.classList.add('active');
+
+      if (currentIdx >= routeCoords.length - 1) {
+        currentIdx = 0; // restart if at end
+      }
+
+      driveInterval = setInterval(() => {
+        if (currentIdx < routeCoords.length - 1) {
+          currentIdx++;
+          updateCarPosition();
+        } else {
+          stopDrive();
+        }
+      }, 700);
+    }
+
+    function stopDrive() {
+      const btn = document.getElementById('btnDrive');
+      if (driveInterval) {
+        clearInterval(driveInterval);
+        driveInterval = null;
+      }
+      btn.innerText = '🚘 Drive';
+      btn.classList.remove('active');
+    }
+
+    function stepForward() {
+      if (!routeCoords || routeCoords.length === 0) return;
+      const stepIncrement = Math.max(1, Math.round(routeCoords.length / 10)); // ~10% step
+      currentIdx = Math.min(routeCoords.length - 1, currentIdx + stepIncrement);
+      updateCarPosition();
+    }
+
+    function updateCarPosition() {
+      if (!routeCoords || currentIdx >= routeCoords.length) return;
+      const coord = routeCoords[currentIdx];
+      if (carMarker) {
+        carMarker.setLatLng(coord);
+        map.panTo(coord, { animate: true, duration: 0.4 });
+      }
+      sendTelemetry();
+    }
+
+    function toggleLayer() {
+      const btn = document.getElementById('btnLayer');
+      if (currentTileLayer) map.removeLayer(currentTileLayer);
+
+      if (currentLyr === 'm') {
+        currentLyr = 'y';
+        currentTileLayer = buildTileLayer('y').addTo(map);
+        if (currentTileLayer.bringToBack) currentTileLayer.bringToBack();
+        btn.innerText = '🗺️ Road';
+        btn.classList.add('active');
+      } else {
+        currentLyr = 'm';
+        currentTileLayer = buildTileLayer('m').addTo(map);
+        if (currentTileLayer.bringToBack) currentTileLayer.bringToBack();
+        btn.innerText = '🛰️ Sat';
+        btn.classList.remove('active');
+      }
+    }
+
+    // Live GPS Bridge if real geolocation updates arrive
+    window.setLiveCoordinates = function(lat, lng) {
+      if (carMarker) {
+        carMarker.setLatLng([lat, lng]);
+        map.panTo([lat, lng], { animate: true, duration: 0.5 });
+      }
+    };
+
+    window.toggleDrive = toggleDrive;
+    window.stepForward = stepForward;
+    window.toggleLayer = toggleLayer;
+
+    window.addEventListener('DOMContentLoaded', initCockpitMap);
+    window.addEventListener('resize', () => { if (map) map.invalidateSize(false); });
+  </script>
+</body>
+</html>
+

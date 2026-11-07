@@ -2,6 +2,7 @@ package com.example.car_rental_sys.ui_components;
 
 import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.ToolsLib.ImageTools;
+import com.example.car_rental_sys.util.EnvConfig;
 import com.example.car_rental_sys.util.SceneManager;
 import javafx.application.Platform;
 import javafx.scene.Cursor;
@@ -18,8 +19,15 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import java.io.File;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 /**
@@ -35,6 +43,7 @@ public class BrowserFrame {
     protected Stage stage = new Stage();
     protected WebView webView = new WebView();
     protected Function<String, Void> callBackFunc = null;
+    private String currentSelectedLocation = "SRM University-AP, Amaravati";
 
     private String captionBarBgc = "#323844";
 
@@ -57,6 +66,7 @@ public class BrowserFrame {
             String message = event.getData();
             if (message != null && !message.isBlank()) {
                 callBack(message);
+                Platform.runLater(() -> stage.close());
             }
         });
 
@@ -95,6 +105,9 @@ public class BrowserFrame {
 
     private void initStage() {
         if (stage.getScene() == null) {
+            webView.setPrefSize(width, height);
+            webView.setMinSize(width, height);
+
             BorderPane browserContainer = new BorderPane(webView);
             browserContainer.setPrefSize(width, height);
             browserContainer.setLayoutX(0);
@@ -113,6 +126,62 @@ public class BrowserFrame {
             stage.setX(owner.getX() + Math.max(0, (owner.getWidth() - this.width) / 2.0));
             stage.setY(owner.getY() + Math.max(0, (owner.getHeight() - (this.height + 30)) / 2.0));
         }
+    }
+
+    private HBox createLocationSelectionBar() {
+        HBox bar = new HBox(8);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPrefHeight(46);
+        bar.setStyle("-fx-background-color: #242933; -fx-padding: 0 14px; -fx-border-color: rgba(255, 255, 255, 0.12); -fx-border-width: 1px 0 0 0;");
+
+        Label selectedLabel = new Label("📍 Selected: " + currentSelectedLocation);
+        selectedLabel.setStyle("-fx-text-fill: #e8eaed; -fx-font-weight: bold; -fx-font-size: 12px;");
+        HBox.setHgrow(selectedLabel, Priority.ALWAYS);
+
+        // Track user navigation inside Google Maps
+        webView.getEngine().locationProperty().addListener((obs, oldUrl, newUrl) -> {
+            if (newUrl != null && newUrl.contains("/maps/place/")) {
+                try {
+                    String part = newUrl.substring(newUrl.indexOf("/maps/place/") + "/maps/place/".length());
+                    if (part.contains("/")) {
+                        part = part.substring(0, part.indexOf("/"));
+                    }
+                    String decoded = URLDecoder.decode(part.replace("+", " "), StandardCharsets.UTF_8);
+                    if (!decoded.isBlank()) {
+                        currentSelectedLocation = decoded;
+                        Platform.runLater(() -> selectedLabel.setText("📍 Selected: " + decoded));
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
+
+        // Quick Hub chips for easy one-click selection
+        Button srmBtn = createHubButton("📍 SRM AP", "SRM University-AP, Amaravati", selectedLabel);
+        Button bzaBtn = createHubButton("🚆 Vijayawada", "Vijayawada Junction, Andhra Pradesh", selectedLabel);
+        Button vgaBtn = createHubButton("✈️ Airport", "Vijayawada International Airport, Gannavaram", selectedLabel);
+        Button aiimsBtn = createHubButton("🏥 AIIMS", "AIIMS Mangalagiri, Andhra Pradesh", selectedLabel);
+        Button gntBtn = createHubButton("🏢 Guntur", "Guntur Railway Station, Andhra Pradesh", selectedLabel);
+
+        Button confirmBtn = new Button("✓ Select This Location");
+        confirmBtn.setStyle("-fx-background-color: #165dff; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px; -fx-background-radius: 6px; -fx-padding: 6px 16px; -fx-cursor: hand;");
+        confirmBtn.setOnAction(e -> {
+            callBack(currentSelectedLocation);
+            stage.close();
+        });
+
+        bar.getChildren().addAll(selectedLabel, srmBtn, bzaBtn, vgaBtn, aiimsBtn, gntBtn, confirmBtn);
+        return bar;
+    }
+
+    private Button createHubButton(String label, String fullPlace, Label selectedLabel) {
+        Button btn = new Button(label);
+        btn.setStyle("-fx-background-color: #15181e; -fx-text-fill: #d1d5db; -fx-font-size: 11px; -fx-background-radius: 12px; -fx-padding: 4px 10px; -fx-cursor: hand; -fx-border-color: #3c4454; -fx-border-radius: 12px;");
+        btn.setOnAction(e -> {
+            currentSelectedLocation = fullPlace;
+            selectedLabel.setText("📍 Selected: " + fullPlace.split(",")[0]);
+            webView.getEngine().load("https://www.google.com/maps/search/" + URLEncoder.encode(fullPlace, StandardCharsets.UTF_8) + "/");
+        });
+        return btn;
     }
 
     public Label getCaptionBar() {

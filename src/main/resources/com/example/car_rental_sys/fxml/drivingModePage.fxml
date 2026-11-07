@@ -5,6 +5,7 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.web.*?>
 
 <Pane prefHeight="832.0" prefWidth="1280.0"
       style="-fx-background-color: #111111;"
@@ -20,63 +21,131 @@
          <Image url="@../image/UI/carDashboard.png" />
       </image>
    </ImageView>
-   <Pane layoutX="155.0" layoutY="695.0" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;">
+   <!-- Card 1: Interactive Climate Control -->
+   <Pane fx:id="climateCardPane" layoutX="155.0" layoutY="695.0" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-border-color: rgba(0,97,239,0.3); -fx-border-radius: 30; -fx-border-width: 1.2;">
       <children>
-         <Label layoutX="22.0" layoutY="20.0" text="Climate controll" textFill="WHITE">
+         <Label layoutX="18.0" layoutY="16.0" text="Climate Control" textFill="WHITE">
             <font>
-               <Font name="System Bold" size="17.0" />
+               <Font name="System Bold" size="16.0" />
             </font>
          </Label>
-         <Pane layoutX="21.0" layoutY="55.0" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #434b53; -fx-background-radius: 15;">
+         <Label fx:id="climateModeLabel" layoutX="150.0" layoutY="19.0" text="A/C AUTO" textFill="#00d2ff">
+            <font>
+               <Font name="System Bold" size="11.0" />
+            </font>
+         </Label>
+         <Pane fx:id="climateIconBox" layoutX="16.0" layoutY="48.0" onMouseClicked="#climateIconBoxClicked" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #1a3b47; -fx-background-radius: 15; -fx-cursor: hand;">
             <children>
-               <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="10.0" layoutY="10.0" pickOnBounds="true" preserveRatio="true">
+               <ImageView fx:id="climateIcon" fitHeight="28.0" fitWidth="28.0" layoutX="11.0" layoutY="11.0" pickOnBounds="true" preserveRatio="true">
                   <image>
                      <Image url="@../image/UI/sun.png" />
                   </image>
                </ImageView>
             </children>
          </Pane>
-         <Label layoutX="90.0" layoutY="61.0" text="24 ℃" textFill="WHITE">
+         <Label fx:id="climateTempLabel" layoutX="74.0" layoutY="52.0" prefHeight="42.0" prefWidth="96.0" text="24 ℃" textFill="WHITE">
             <font>
-               <Font size="30.0" />
-            </font></Label>
-      </children></Pane>
-   <Pane layoutX="410.0" layoutY="695.0" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;">
-      <children>
-         <Label layoutX="22.0" layoutY="20.0" text="Seats adjustment" textFill="WHITE">
-            <font>
-               <Font name="System Bold" size="17.0" />
+               <Font name="System Bold" size="26.0" />
             </font>
          </Label>
-         <Pane layoutX="21.0" layoutY="55.0" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #434b53; -fx-background-radius: 15;">
+         <Pane fx:id="tempUpBtn" layoutX="175.0" layoutY="46.0" onMouseClicked="#tempUpClicked" prefHeight="24.0" prefWidth="38.0" style="-fx-background-color: #3b424a; -fx-background-radius: 8; -fx-cursor: hand;">
             <children>
-               <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="10.0" layoutY="10.0" pickOnBounds="true" preserveRatio="true">
+               <Label layoutX="13.0" layoutY="2.0" text="▲" textFill="WHITE">
+                  <font>
+                     <Font name="System Bold" size="13.0" />
+                  </font>
+               </Label>
+            </children>
+         </Pane>
+         <Pane fx:id="tempDownBtn" layoutX="175.0" layoutY="74.0" onMouseClicked="#tempDownClicked" prefHeight="24.0" prefWidth="38.0" style="-fx-background-color: #3b424a; -fx-background-radius: 8; -fx-cursor: hand;">
+            <children>
+               <Label layoutX="13.0" layoutY="2.0" text="▼" textFill="WHITE">
+                  <font>
+                     <Font name="System Bold" size="13.0" />
+                  </font>
+               </Label>
+            </children>
+         </Pane>
+      </children>
+   </Pane>
+   <!-- Card 2: Interactive Seat Adjustment -->
+   <Pane fx:id="seatCardPane" layoutX="410.0" layoutY="695.0" onMouseClicked="#seatCardClicked" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-border-color: rgba(0,97,239,0.3); -fx-border-radius: 30; -fx-border-width: 1.2; -fx-cursor: hand;">
+      <children>
+         <Label layoutX="18.0" layoutY="16.0" text="Seat Adjustment" textFill="WHITE">
+            <font>
+               <Font name="System Bold" size="16.0" />
+            </font>
+         </Label>
+         <Label fx:id="seatPresetLabel" layoutX="152.0" layoutY="19.0" text="COMFORT" textFill="#ffb84d">
+            <font>
+               <Font name="System Bold" size="11.0" />
+             </font>
+         </Label>
+         <Pane fx:id="seatIconBox" layoutX="16.0" layoutY="48.0" onMouseClicked="#seatWarmerClicked" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #434b53; -fx-background-radius: 15; -fx-cursor: hand;">
+            <children>
+               <ImageView fitHeight="28.0" fitWidth="28.0" layoutX="11.0" layoutY="11.0" pickOnBounds="true" preserveRatio="true">
                   <image>
                      <Image url="@../image/UI/seat.png" />
                   </image>
                </ImageView>
             </children>
          </Pane>
-         <Label layoutX="96.0" layoutY="61.0" text="36 °" textFill="WHITE">
+         <Label fx:id="seatAngleLabel" layoutX="74.0" layoutY="52.0" prefHeight="42.0" prefWidth="96.0" text="36 °" textFill="WHITE">
             <font>
-               <Font size="30.0" />
+               <Font name="System Bold" size="26.0" />
             </font>
          </Label>
-      </children></Pane>
-   <Pane layoutX="665.0" layoutY="695.0" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;">
+         <Pane fx:id="seatUpBtn" layoutX="175.0" layoutY="46.0" onMouseClicked="#seatUpClicked" prefHeight="24.0" prefWidth="38.0" style="-fx-background-color: #3b424a; -fx-background-radius: 8; -fx-cursor: hand;">
+            <children>
+               <Label layoutX="13.0" layoutY="2.0" text="▲" textFill="WHITE">
+                  <font>
+                     <Font name="System Bold" size="13.0" />
+                  </font>
+               </Label>
+            </children>
+         </Pane>
+         <Pane fx:id="seatDownBtn" layoutX="175.0" layoutY="74.0" onMouseClicked="#seatDownClicked" prefHeight="24.0" prefWidth="38.0" style="-fx-background-color: #3b424a; -fx-background-radius: 8; -fx-cursor: hand;">
+            <children>
+               <Label layoutX="13.0" layoutY="2.0" text="▼" textFill="WHITE">
+                  <font>
+                     <Font name="System Bold" size="13.0" />
+                  </font>
+               </Label>
+            </children>
+         </Pane>
+      </children>
+   </Pane>
+
+   <!-- Card 3: Interactive Ambient Lighting -->
+   <Pane fx:id="ambientCardPane" layoutX="665.0" layoutY="695.0" onMouseClicked="#ambientCardClicked" prefHeight="116.0" prefWidth="230.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-border-color: rgba(0,97,239,0.3); -fx-border-radius: 30; -fx-border-width: 1.2; -fx-cursor: hand;">
       <children>
-         <Label layoutX="22.0" layoutY="20.0" text="Backllighting" textFill="WHITE">
+         <Label layoutX="18.0" layoutY="16.0" text="Ambient Lighting" textFill="WHITE">
             <font>
-               <Font name="System Bold" size="17.0" />
+               <Font name="System Bold" size="16.0" />
             </font>
          </Label>
-         <Pane layoutX="21.0" layoutY="55.0" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #0061ef; -fx-background-radius: 15;" />
-         <Label layoutX="84.0" layoutY="61.0" text="Blue" textFill="WHITE">
+         <Label fx:id="ambientModeLabel" layoutX="160.0" layoutY="19.0" text="ACTIVE" textFill="#0061ef">
             <font>
-               <Font size="30.0" />
+               <Font name="System Bold" size="11.0" />
             </font>
          </Label>
-      </children></Pane>
+         <Pane fx:id="ambientColorSwatch" layoutX="16.0" layoutY="48.0" prefHeight="50.0" prefWidth="50.0" style="-fx-background-color: #0061ef; -fx-background-radius: 15; -fx-effect: dropshadow(three-pass-box, rgba(0,97,239,0.5), 14, 0, 0, 0);" />
+         <Label fx:id="ambientColorNameLabel" layoutX="74.0" layoutY="52.0" prefHeight="42.0" prefWidth="96.0" text="Ice Blue" textFill="WHITE">
+            <font>
+               <Font name="System Bold" size="20.0" />
+            </font>
+         </Label>
+         <Pane fx:id="ambientCycleBtn" layoutX="175.0" layoutY="52.0" onMouseClicked="#ambientCardClicked" prefHeight="44.0" prefWidth="38.0" style="-fx-background-color: #3b424a; -fx-background-radius: 8; -fx-cursor: hand;">
+            <children>
+               <Label layoutX="13.0" layoutY="8.0" text="›" textFill="WHITE">
+                  <font>
+                     <Font name="System Bold" size="20.0" />
+                  </font>
+               </Label>
+            </children>
+         </Pane>
+      </children>
+   </Pane>
    <ImageView fx:id="userAvatar" fitHeight="70.0" fitWidth="69.0" layoutX="30.0" layoutY="42.0" onMouseClicked="#userAvatarClicked" pickOnBounds="true" preserveRatio="true" styleClass="hand">
       <image>
          <Image url="@../image/avatar/1.png" />
@@ -94,28 +163,28 @@
          <String fx:value="sidebarIconActive" />
          <String fx:value="sidebarIconNormal" />
       </styleClass></Pane>
-   <Pane fx:id="sideIconHome" layoutX="35.0" layoutY="320.0" onMouseClicked="#backToDriverMainPage" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;" styleClass="sidebarIconNormal">
+   <Pane fx:id="sideIconHome" layoutX="35.0" layoutY="320.0" onMouseClicked="#backToDriverMainPage" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-cursor: hand;" styleClass="sidebarIconNormal">
       <children>
          <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="15.0" layoutY="15.0" pickOnBounds="true" preserveRatio="true">
             <image>
                <Image url="@../image/UI/home.png" />
             </image></ImageView>
       </children></Pane>
-   <Pane fx:id="sideIconVolume" layoutX="35.0" layoutY="420.0" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;" styleClass="sidebarIconNormal">
+   <Pane fx:id="sideIconVolume" layoutX="35.0" layoutY="420.0" onMouseClicked="#finishDeliveryClicked" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-cursor: hand;" styleClass="sidebarIconNormal">
       <children>
          <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="15.0" layoutY="15.0" pickOnBounds="true" preserveRatio="true">
             <image>
                <Image url="@../image/UI/orderFinish.png" />
             </image></ImageView>
       </children></Pane>
-   <Pane fx:id="sideIconPhone" layoutX="35.0" layoutY="520.0" onMouseClicked="#phoneIconClicked" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;" styleClass="sidebarIconNormal">
+   <Pane fx:id="sideIconPhone" layoutX="35.0" layoutY="520.0" onMouseClicked="#phoneIconClicked" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-cursor: hand;" styleClass="sidebarIconNormal">
       <children>
          <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="15.0" layoutY="15.0" pickOnBounds="true" preserveRatio="true">
             <image>
                <Image url="@../image/UI/phone.png" />
             </image></ImageView>
       </children></Pane>
-   <Pane fx:id="sideIconSetting" layoutX="39.0" layoutY="620.0" onMouseClicked="#backToSettingPage" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30;" styleClass="sidebarIconNormal">
+   <Pane fx:id="sideIconSetting" layoutX="39.0" layoutY="620.0" onMouseClicked="#backToSettingPage" prefHeight="60.0" prefWidth="60.0" style="-fx-background-color: #292d32; -fx-background-radius: 30; -fx-cursor: hand;" styleClass="sidebarIconNormal">
       <children>
          <ImageView fitHeight="30.0" fitWidth="30.0" layoutX="15.0" layoutY="15.0" pickOnBounds="true" preserveRatio="true">
             <image>
@@ -126,31 +195,34 @@
    <Pane prefHeight="39.0" prefWidth="1280.0" style="-fx-background-color: transparent;">
       <fx:include source="navigationBarShortForBlack.fxml" />
    </Pane>
-   <Pane fx:id="browserContainer" layoutX="955.0" layoutY="42.0" prefHeight="490.0" prefWidth="300.0" style="-fx-background-color: white;">
+   <Pane fx:id="browserContainer" layoutX="955.0" layoutY="42.0" prefHeight="490.0" prefWidth="300.0" style="-fx-background-color: #121b26; -fx-background-radius: 20; -fx-border-color: #292d32; -fx-border-radius: 20; -fx-border-width: 1;">
       <children>
-         <Pane fx:id="distanceDataPane" layoutX="28.0" layoutY="387.0" prefHeight="69.0" prefWidth="245.0" style="-fx-background-color: #121b26; -fx-background-radius: 20;">
+         <WebView fx:id="cockpitWebView" prefHeight="490.0" prefWidth="300.0" />
+         <Pane fx:id="distanceDataPane" layoutX="28.0" layoutY="387.0" prefHeight="69.0" prefWidth="245.0" style="-fx-background-color: rgba(18, 27, 38, 0.94); -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 12, 0, 0, 4); -fx-border-color: rgba(255,255,255,0.12); -fx-border-radius: 20; -fx-border-width: 1;">
             <children>
-               <Pane layoutX="12.0" layoutY="41.0" prefHeight="8.0" prefWidth="222.0" style="-fx-background-color: #30fa8f; -fx-background-radius: 10;">
+               <Pane fx:id="progressBarTrack" layoutX="12.0" layoutY="41.0" prefHeight="8.0" prefWidth="222.0" style="-fx-background-color: #232d3b; -fx-background-radius: 10;">
                   <children>
-                     <ImageView fitHeight="41.0" fitWidth="30.0" layoutY="-12.0" pickOnBounds="true" preserveRatio="true">
+                     <Pane fx:id="progressBarFill" prefHeight="8.0" prefWidth="24.0" style="-fx-background-color: #30fa8f; -fx-background-radius: 10;" />
+                     <ImageView fx:id="progressIndicator" fitHeight="41.0" fitWidth="30.0" layoutX="-2.0" layoutY="-12.0" pickOnBounds="true" preserveRatio="true">
                         <image>
                            <Image url="@../image/UI/toRight.png" />
                         </image>
                      </ImageView>
                   </children>
                </Pane>
-               <Label fx:id="distanceLeftLabel" layoutX="21.0" layoutY="12.0" text="0 km left" textFill="WHITE">
+               <Label fx:id="distanceLeftLabel" layoutX="21.0" layoutY="12.0" text="21.6 km left" textFill="WHITE">
                   <font>
-                     <Font size="14.0" />
+                     <Font name="System Bold" size="14.0" />
                   </font>
                </Label>
-               <Label fx:id="timeLeftLabel" layoutX="175.0" layoutY="12.0" text="00 mins" textFill="WHITE">
+               <Label fx:id="timeLeftLabel" layoutX="165.0" layoutY="12.0" text="28 mins" textFill="#30fa8f">
                   <font>
-                     <Font size="14.0" />
+                     <Font name="System Bold" size="14.0" />
                   </font>
                </Label>
             </children>
          </Pane>
-      </children></Pane>
+      </children>
+   </Pane>
    <Pane layoutX="30.0" layoutY="42.0" prefHeight="70.0" prefWidth="70.0" style="-fx-background-radius: 35;" styleClass="hand" />
 </Pane>

@@ -51,6 +51,14 @@ public final class SceneManager {
             return;
         }
 
+        // Auto-pause cockpit music when navigating away to homepage, dashboard, or other views
+        if (!"drivingModePage.fxml".equalsIgnoreCase(fxmlFileName)) {
+            try {
+                com.example.car_rental_sys.controllers.MusicPlayerController.pausePlayback();
+            } catch (Throwable ignored) {
+            }
+        }
+
         try {
             String path = fxmlFileName.startsWith("/") ? fxmlFileName : FXML_BASE_PATH + fxmlFileName;
             URL resource = SceneManager.class.getResource(path);
@@ -94,9 +102,15 @@ public final class SceneManager {
             }
 
             LOGGER.info("Switched to scene: " + fxmlFileName);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load scene: " + fxmlFileName, e);
-            AlertHelper.showError("Navigation Error", "Failed to load view: " + e.getMessage());
+            e.printStackTrace();
+            Throwable cause = e;
+            while (cause.getCause() != null && cause.getCause() != cause) {
+                cause = cause.getCause();
+            }
+            String detail = cause.getMessage() != null ? cause.getMessage() : cause.toString();
+            AlertHelper.showError("Navigation Error", "Failed to load view (" + fxmlFileName + "):\n\n" + detail);
         }
     }
 

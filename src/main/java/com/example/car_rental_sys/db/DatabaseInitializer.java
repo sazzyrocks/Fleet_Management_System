@@ -320,9 +320,9 @@ public final class DatabaseInitializer {
 
         String sqlUser = "INSERT INTO `users` (`username`, `password_hash`, `email`, `phone`, `full_name`, `role`, `status`) " +
 
-                         "VALUES ('driver', ?, 'driver@fleetms.com', '+91 98765 00002', 'David Davis', 'DRIVER', 'ACTIVE') " +
+                         "VALUES ('driver', ?, 'driver@fleetms.com', '+91 98765 00002', 'Vikram Singh', 'DRIVER', 'ACTIVE') " +
 
-                         "ON DUPLICATE KEY UPDATE `password_hash` = ?, `status` = 'ACTIVE', `role` = 'DRIVER'";
+                         "ON DUPLICATE KEY UPDATE `password_hash` = ?, `full_name` = 'Vikram Singh', `status` = 'ACTIVE', `role` = 'DRIVER'";
 
         try (java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlUser)) {
 
@@ -374,9 +374,9 @@ public final class DatabaseInitializer {
 
         String sqlUser = "INSERT INTO `users` (`username`, `password_hash`, `email`, `phone`, `full_name`, `role`, `status`) " +
 
-                         "VALUES ('customer', ?, 'customer@fleetms.com', '+91 98765 00003', 'Alexander Wright', 'CUSTOMER', 'ACTIVE') " +
+                         "VALUES ('customer', ?, 'customer@fleetms.com', '+91 98765 00003', 'Aarav Sharma', 'CUSTOMER', 'ACTIVE') " +
 
-                         "ON DUPLICATE KEY UPDATE `password_hash` = ?, `status` = 'ACTIVE', `role` = 'CUSTOMER'";
+                         "ON DUPLICATE KEY UPDATE `password_hash` = ?, `full_name` = 'Aarav Sharma', `status` = 'ACTIVE', `role` = 'CUSTOMER'";
 
         try (java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlUser)) {
 

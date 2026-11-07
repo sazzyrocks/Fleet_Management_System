@@ -218,9 +218,14 @@
         window.initMap = initMap;
     </script>
 
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBam-tEfHfTu0QbI4J3H2HzX85JKvXDEig&callback=initMap&v=weekly&language=en"
-        defer></script>
+    <script>
+        if (typeof googleMapKey !== 'undefined' && googleMapKey && !googleMapKey.startsWith('your_')) {
+            let script = document.createElement('script');
+            script.src = 'https://maps.googleapis.com/maps/api/js?key=' + googleMapKey + '&callback=initMap&v=weekly&language=en';
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+    </script>
 
     <script>
         //excute every 5 seconds

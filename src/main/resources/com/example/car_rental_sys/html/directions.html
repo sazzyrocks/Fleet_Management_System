@@ -2,116 +2,289 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Driver Mission Control - Fleet Navigation</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="./googleMapKey.js"></script>
+  <title>Driver Dispatch Navigation - Fleet Control</title>
+  
+  <!-- Local Leaflet 1.9.4 Assets -->
+  <link rel="stylesheet" href="./leaflet.css" />
+  <script src="./leaflet.js"></script>
+
   <style>
+    /* Critical Leaflet layout overrides to prevent tile tearing & inline wrapping in WebEngine */
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-layer {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+    }
+
+    .leaflet-container {
+      overflow: hidden !important;
+      background: #15181e !important;
+      width: 100% !important;
+      height: 100% !important;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .leaflet-container .leaflet-tile {
+      max-width: none !important;
+      max-height: none !important;
+      width: 256px !important;
+      height: 256px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      mix-blend-mode: normal !important;
+      visibility: inherit !important;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
     }
+
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #1a1e24;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-      background: #1a1e24;
+      background-color: #15181e;
     }
 
-    /* Floating Route Card */
-    .route-card {
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #15181e;
+      z-index: 1;
+    }
+
+    /* Floating Cockpit Route Card */
+    .cockpit-card {
       position: absolute;
       top: 16px;
       left: 16px;
       z-index: 1000;
-      background: rgba(22, 27, 34, 0.94);
-      backdrop-filter: blur(10px);
+      background: rgba(21, 24, 30, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 14px 18px;
       color: #ffffff;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-      width: 320px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      width: 330px;
+      transition: all 0.3s ease;
     }
-    .route-header {
+
+    .cockpit-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
-    .route-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #722ed1;
+
+    .cockpit-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #9d5bfe;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+
     .eta-badge {
       background: #00b42a;
       color: #ffffff;
       font-size: 11px;
-      font-weight: bold;
-      padding: 3px 8px;
+      font-weight: 700;
+      padding: 4px 9px;
       border-radius: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 10px rgba(0, 180, 42, 0.4);
     }
-    .route-point {
+
+    .route-node {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 12.5px;
-      margin-top: 6px;
-      color: #e5e6eb;
+      gap: 12px;
+      margin: 4px 0;
     }
-    .point-dot {
-      width: 10px;
-      height: 10px;
+
+    .node-icon {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .dot-start {
+
+    .node-icon.start {
       background: #165dff;
+      border: 2px solid #ffffff;
       box-shadow: 0 0 8px #165dff;
     }
-    .dot-end {
+
+    .node-icon.end {
       background: #f53f3f;
+      border: 2px solid #ffffff;
       box-shadow: 0 0 8px #f53f3f;
     }
-    .route-divider {
+
+    .node-line {
       width: 2px;
-      height: 14px;
+      height: 12px;
       background: rgba(255, 255, 255, 0.2);
-      margin-left: 4px;
+      margin-left: 5px;
     }
-    .route-stats {
+
+    .node-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #f2f3f5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .route-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
       margin-top: 12px;
       padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: #86909c;
-    }
-    .route-stats strong {
-      color: #ffffff;
+      font-size: 11px;
     }
 
-    /* Fallback Vector Map if Leaflet CDN is unavailable */
-    #fallback-map {
-      display: none;
-      width: 100%;
-      height: 100%;
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      color: #86909c;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-weight: 700;
+      color: #ffffff;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    /* Top Right Tools */
+    .map-tools {
       position: absolute;
-      top: 0;
-      left: 0;
-      background: #192231;
+      top: 14px;
+      right: 14px;
+      z-index: 100000;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto !important;
+    }
+
+    .tool-btn {
+      background: rgba(21, 24, 30, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 14px;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .tool-btn:hover {
+      background: #165dff;
+      border-color: #165dff;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .tool-btn:active, .tool-btn.active {
+      background: #165dff !important;
+      border-color: #165dff !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(22, 93, 255, 0.6) !important;
+      transform: translateY(0);
+    }
+
+    /* Pulsing Pin Styling */
+    .pulsing-pin {
+      position: relative;
+      width: 22px;
+      height: 22px;
+    }
+
+    .pulsing-core {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 12px rgba(0,0,0,0.4);
+      z-index: 2;
+    }
+
+    .pulsing-ring {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      animation: pulse-ring 2s infinite ease-out;
+      opacity: 0.8;
+      z-index: 1;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.6);
+        opacity: 0.9;
+      }
+      100% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+    }
+
+    #fallback {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: #15181e;
+      color: #e5e6eb;
+      padding: 40px;
+      text-align: center;
+      z-index: 500;
     }
   </style>
 </head>
@@ -119,140 +292,311 @@
 
   <div id="map"></div>
 
-  <!-- Offline / Fallback Vector SVG Map -->
-  <div id="fallback-map">
-    <svg width="100%" height="100%">
-      <defs>
-        <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#253245" stroke-width="0.6"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid)" />
-      <!-- Krishna River -->
-      <path d="M-50,220 Q300,160 750,240" stroke="#102033" stroke-width="32" fill="none" stroke-linecap="round"/>
-      <!-- Highway Route Line -->
-      <path d="M120,480 Q320,340 550,180" stroke="#165dff" stroke-width="6" fill="none" stroke-dasharray="8 4"/>
-      <!-- Origin & Destination Markers -->
-      <circle cx="120" cy="480" r="10" fill="#165dff" stroke="#ffffff" stroke-width="3"/>
-      <circle cx="550" cy="180" r="10" fill="#f53f3f" stroke="#ffffff" stroke-width="3"/>
-      <text x="140" y="485" fill="#ffffff" font-size="13" font-weight="bold">SRM University-AP (Origin)</text>
-      <text x="400" y="160" fill="#ffffff" font-size="13" font-weight="bold">Vijayawada BZA Hub (Destination)</text>
-    </svg>
+  <!-- Cockpit HUD Card -->
+  <div class="cockpit-card">
+    <div class="cockpit-header">
+      <div class="cockpit-title">
+        <span>⚡</span> Live Dispatch Route
+      </div>
+      <div class="eta-badge" id="etaBadge">23 MINS</div>
+    </div>
+
+    <div class="route-node">
+      <div class="node-icon start"></div>
+      <div class="node-text" id="startName">SRM University-AP, Amaravati</div>
+    </div>
+    <div class="node-line"></div>
+    <div class="route-node">
+      <div class="node-icon end"></div>
+      <div class="node-text" id="destName">Vijayawada Junction (BZA Hub)</div>
+    </div>
+
+    <div class="route-metrics">
+      <div class="metric-item">
+        <span class="metric-label">Distance</span>
+        <span class="metric-value" id="metricDistance">21.6 km</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Traffic</span>
+        <span class="metric-value" style="color: #00b42a;">Clear Flow</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Status</span>
+        <span class="metric-value" style="color: #165dff;">Active Trip</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Floating Active Route Card -->
-  <div class="route-card">
-    <div class="route-header">
-      <span class="route-title">Live Dispatch Route</span>
-      <span class="eta-badge" id="etaBadge">14 MINS</span>
-    </div>
-    <div class="route-point">
-      <div class="point-dot dot-start"></div>
-      <div id="startLocationText">SRM University-AP, Amaravati</div>
-    </div>
-    <div class="route-divider"></div>
-    <div class="route-point">
-      <div class="point-dot dot-end"></div>
-      <div id="destLocationText">Vijayawada Junction (BZA Hub)</div>
-    </div>
-    <div class="route-stats">
-      <span>Distance: <strong id="statDistance">14.8 km</strong></span>
-      <span>Traffic: <strong style="color: #00b42a;">Clear Flow</strong></span>
-      <span>Status: <strong style="color: #165dff;">Active Trip</strong></span>
-    </div>
+  <!-- Top Right Tools -->
+  <div class="map-tools">
+    <button class="tool-btn" id="btnLayer" onclick="toggleMapLayer()">🗺️ Satellite</button>
+    <button class="tool-btn" id="btnFit" onclick="fitRouteBounds()">⛶ Fit Route</button>
+    <button class="tool-btn" id="btnSimulate" onclick="toggleSimulation()">🚘 Drive (Car View)</button>
+  </div>
+
+  <div id="fallback">
+    <h3>Fleet Navigation Offline Mode</h3>
+    <p>Loaded emergency telemetry coordinates.</p>
   </div>
 
   <script>
     let map = null;
-    let routeLine = null;
-    let markerStart = null;
-    let markerEnd = null;
+    let currentTileLayer = null;
+    let currentLyr = 'm'; // 'm' = roadmap, 'y' = satellite
+    let routePolyline = null;
+    let startMarker = null;
+    let endMarker = null;
+    let carMarker = null;
+    let simInterval = null;
+    let simStep = 0;
+    let routeCoords = [];
 
-    // SRM University-AP coords
-    const SRM_AP = [16.4632, 80.5078];
-    // Vijayawada Railway Station / BZA coords
-    const VIJAYAWADA_BZA = [16.5175, 80.6200];
+    // Parse URL params or use defaults
+    const urlParams = new URLSearchParams(window.location.search);
+    let startLat = parseFloat(urlParams.get('startLat')) || 16.4632;
+    let startLng = parseFloat(urlParams.get('startLng')) || 80.5078;
+    let destLat = parseFloat(urlParams.get('destLat')) || 16.5175;
+    let destLng = parseFloat(urlParams.get('destLng')) || 80.6200;
+    let startTitle = urlParams.get('startName') ? decodeURIComponent(urlParams.get('startName')) : 'SRM University-AP, Amaravati';
+    let destTitle = urlParams.get('destName') ? decodeURIComponent(urlParams.get('destName')) : 'Vijayawada Junction (BZA Hub)';
+
+    function buildGoogleTileLayer(lyr) {
+      const url = `https://mt{s}.google.com/vt/lyrs=${lyr}&x={x}&y={y}&z={z}`;
+      const layer = L.tileLayer(url, {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
+        maxNativeZoom: 19,
+        tileSize: 256,
+        updateWhenIdle: false,
+        updateInterval: 100,
+        keepBuffer: 6,
+        crossOrigin: true
+      });
+
+      layer.on('tileerror', function(error) {
+        const tile = error.tile;
+        const retryCount = (tile._retries || 0) + 1;
+        tile._retries = retryCount;
+
+        if (retryCount <= 2) {
+          setTimeout(() => {
+            const sub = ['0', '1', '2', '3'][Math.floor(Math.random() * 4)];
+            tile.src = `https://mt${sub}.google.com/vt/lyrs=${lyr}&x=${error.coords.x}&y=${error.coords.y}&z=${error.coords.z}&_r=${retryCount}`;
+          }, 250 * retryCount);
+        } else if (lyr === 'm') {
+          tile.src = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${error.coords.z}/${error.coords.x}/${error.coords.y}.png`;
+        }
+      });
+
+      return layer;
+    }
 
     function initMap() {
-      try {
-        if (typeof L === 'undefined') {
-          showFallback();
-          return;
-        }
+      document.getElementById('startName').innerText = startTitle;
+      document.getElementById('destName').innerText = destTitle;
 
-        map = L.map('map', {
-          center: [16.4900, 80.5640],
-          zoom: 12,
-          zoomControl: true,
-          attributionControl: false
+      if (typeof L === 'undefined') {
+        document.getElementById('fallback').style.display = 'block';
+        return;
+      }
+
+      const centerLat = (startLat + destLat) / 2;
+      const centerLng = (startLng + destLng) / 2;
+
+      // 2D rendering without matrix3d animations to prevent WebKit layer tearing
+      map = L.map('map', {
+        center: [centerLat, centerLng],
+        zoom: 12,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false,
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true
+      });
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      currentTileLayer = buildGoogleTileLayer(currentLyr).addTo(map);
+
+      // Pins
+      const startIcon = L.divIcon({
+        className: 'custom-start-pin',
+        html: '<div class="pulsing-pin"><div class="pulsing-ring" style="background: rgba(22, 93, 255, 0.4);"></div><div class="pulsing-core" style="background: #165dff;"></div></div>',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      const endIcon = L.divIcon({
+        className: 'custom-end-pin',
+        html: '<div class="pulsing-pin"><div class="pulsing-ring" style="background: rgba(245, 63, 63, 0.4);"></div><div class="pulsing-core" style="background: #f53f3f;"></div></div>',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      });
+
+      startMarker = L.marker([startLat, startLng], { icon: startIcon }).addTo(map)
+        .bindPopup('<b>Driver Location:</b><br>' + startTitle);
+
+      endMarker = L.marker([destLat, destLng], { icon: endIcon }).addTo(map)
+        .bindPopup('<b>Destination:</b><br>' + destTitle);
+
+      // Single initial sizing after layout settles
+      setTimeout(() => {
+        if (map) map.invalidateSize(false);
+      }, 150);
+
+      // Fetch Real Road Navigation via OSRM
+      fetchLiveRoute(startLng, startLat, destLng, destLat);
+    }
+
+    function fetchLiveRoute(sLng, sLat, dLng, dLat) {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${dLng},${dLat}?overview=full&geometries=geojson`;
+
+      fetch(osrmUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            const distKm = (route.distance / 1000).toFixed(1);
+            const durationMin = Math.max(1, Math.round(route.duration / 60));
+
+            document.getElementById('metricDistance').innerText = distKm + ' km';
+            document.getElementById('etaBadge').innerText = durationMin + ' MINS';
+
+            // Convert GeoJSON [lng, lat] to Leaflet [lat, lng]
+            routeCoords = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            drawPolyline(routeCoords);
+          } else {
+            fallbackRoute();
+          }
+        })
+        .catch(() => {
+          fallbackRoute();
         });
+    }
 
-        // High-performance clean automotive dark canvas (No watermarks, No API key required)
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 16,
-          attribution: 'Esri, Garmin, OpenStreetMap'
-        }).addTo(map);
+    function fallbackRoute() {
+      routeCoords = [
+        [startLat, startLng],
+        [16.4750, 80.5180],
+        [16.4980, 80.5400],
+        [16.5100, 80.5850],
+        [16.5070, 80.6050],
+        [16.5120, 80.6120],
+        [destLat, destLng]
+      ];
+      drawPolyline(routeCoords);
+    }
 
-        // Custom pulsing marker icons
-        const startIcon = L.divIcon({
-          className: 'custom-pin-start',
-          html: '<div style="background: #165dff; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 10px #165dff;"></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+    function drawPolyline(coords) {
+      if (routePolyline) map.removeLayer(routePolyline);
+
+      routePolyline = L.polyline(coords, {
+        color: '#165dff',
+        weight: 6,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(map);
+
+      fitRouteBounds();
+    }
+
+    function fitRouteBounds() {
+      if (routePolyline && map) {
+        map.fitBounds(routePolyline.getBounds(), {
+          padding: [50, 50],
+          maxZoom: 15,
+          animate: false
         });
-
-        const endIcon = L.divIcon({
-          className: 'custom-pin-end',
-          html: '<div style="background: #f53f3f; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 10px #f53f3f;"></div>',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+      } else if (map) {
+        map.fitBounds([[startLat, startLng], [destLat, destLng]], {
+          padding: [50, 50],
+          maxZoom: 15,
+          animate: false
         });
-
-        markerStart = L.marker(SRM_AP, { icon: startIcon }).addTo(map).bindPopup("<b>Pickup:</b> SRM University-AP, Amaravati");
-        markerEnd = L.marker(VIJAYAWADA_BZA, { icon: endIcon }).addTo(map).bindPopup("<b>Dropoff:</b> Vijayawada Central BZA Hub");
-
-        // Realistic roadway navigation waypoints connecting SRM AP to Vijayawada across Seed Access Rd & Prakasam Barrage
-        const routePoints = [
-          [16.4632, 80.5078], // SRM AP Campus
-          [16.4750, 80.5180], // Neerukonda Junction
-          [16.4980, 80.5400], // Amaravati Seed Access Road
-          [16.5100, 80.5850], // Undavalli Center
-          [16.5070, 80.6050], // Prakasam Barrage Approach
-          [16.5120, 80.6120], // Krishna River Crossing
-          [16.5175, 80.6200]  // Vijayawada BZA Hub
-        ];
-
-        routeLine = L.polyline(routePoints, {
-          color: '#165dff',
-          weight: 6,
-          opacity: 0.9,
-          lineJoin: 'round'
-        }).addTo(map);
-
-        // Smooth zoom to fit the active trip
-        map.fitBounds(routeLine.getBounds(), { padding: [60, 60] });
-
-      } catch (e) {
-        console.error("Leaflet load error, using vector fallback:", e);
-        showFallback();
       }
     }
 
-    function showFallback() {
-      const fb = document.getElementById("fallback-map");
-      if (fb) fb.style.display = "block";
-      const m = document.getElementById("map");
-      if (m) m.style.display = "none";
+    function toggleMapLayer() {
+      const btn = document.getElementById('btnLayer');
+      if (currentTileLayer) map.removeLayer(currentTileLayer);
+
+      if (currentLyr === 'm') {
+        currentLyr = 'y'; // Hybrid satellite
+        currentTileLayer = buildGoogleTileLayer('y').addTo(map);
+        if (currentTileLayer.bringToBack) currentTileLayer.bringToBack();
+        btn.innerText = '🗺️ Roadmap';
+        btn.classList.add('active');
+        document.body.style.backgroundColor = '#15181e';
+        document.getElementById('map').style.backgroundColor = '#15181e';
+      } else {
+        currentLyr = 'm'; // Roadmap
+        currentTileLayer = buildGoogleTileLayer('m').addTo(map);
+        if (currentTileLayer.bringToBack) currentTileLayer.bringToBack();
+        btn.innerText = '🗺️ Satellite';
+        btn.classList.remove('active');
+        document.body.style.backgroundColor = '#e5e3df';
+        document.getElementById('map').style.backgroundColor = '#e5e3df';
+      }
     }
 
-    function changeDirections(start, end) {
-      const sElem = document.getElementById("startLocationText");
-      const dElem = document.getElementById("destLocationText");
-      if (sElem && start) sElem.innerText = start;
-      if (dElem && end) dElem.innerText = end;
+    function toggleSimulation() {
+      // Transition directly to the In-Cabin Driving Cockpit Mode
+      alert("OPEN_DRIVE_MODE");
     }
 
-    window.addEventListener('DOMContentLoaded', initMap);
+    // JavaFX Bridge API
+    window.setRoute = function(sLat, sLng, dLat, dLng, sName, dName) {
+      startLat = sLat;
+      startLng = sLng;
+      destLat = dLat;
+      destLng = dLng;
+      startTitle = sName || 'Driver Location';
+      destTitle = dName || 'Drop-off Destination';
+
+      document.getElementById('startName').innerText = startTitle;
+      document.getElementById('destName').innerText = destTitle;
+
+      if (startMarker) startMarker.setLatLng([startLat, startLng]);
+      if (endMarker) endMarker.setLatLng([destLat, destLng]);
+
+      fetchLiveRoute(startLng, startLat, destLng, destLat);
+    };
+
+    // Expose functions globally on window
+    window.toggleMapLayer = toggleMapLayer;
+    window.fitRouteBounds = fitRouteBounds;
+    window.toggleSimulation = toggleSimulation;
+
+    window.addEventListener('resize', function() {
+      if (map) map.invalidateSize(false);
+    });
+
+    window.addEventListener('DOMContentLoaded', function() {
+      initMap();
+      const bLayer = document.getElementById('btnLayer');
+      const bFit = document.getElementById('btnFit');
+      const bSim = document.getElementById('btnSimulate');
+      const mapTools = document.querySelector('.map-tools');
+
+      if (typeof L !== 'undefined' && L.DomEvent) {
+        if (mapTools) {
+          L.DomEvent.disableClickPropagation(mapTools);
+          L.DomEvent.disableScrollPropagation(mapTools);
+        }
+        [bLayer, bFit, bSim].forEach(btn => {
+          if (btn) {
+            L.DomEvent.disableClickPropagation(btn);
+            L.DomEvent.disableScrollPropagation(btn);
+          }
+        });
+      }
+
+      if (bLayer) bLayer.onclick = toggleMapLayer;
+      if (bFit) bFit.onclick = fitRouteBounds;
+      if (bSim) bSim.onclick = toggleSimulation;
+    });
   </script>
 </body>
 </html>

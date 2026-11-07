@@ -58,10 +58,10 @@ public class DatabaseConnection {
         try (InputStream in = getClass().getClassLoader().getResourceAsStream(CONFIG_FILE)) {
             if (in == null) {
                 LOGGER.log(Level.SEVERE, "Could not find {0} on classpath. Falling back to defaults.", CONFIG_FILE);
-                this.driver = "com.mysql.cj.jdbc.Driver";
-                this.url = "jdbc:mysql://localhost:3306/fleet_management_db?useSSL=false&serverTimezone=UTC";
-                this.username = "root";
-                this.password = "root";
+                this.driver = EnvConfig.get("DB_DRIVER", "com.mysql.cj.jdbc.Driver");
+                this.url = EnvConfig.get("DB_URL", "jdbc:mysql://localhost:3306/fleet_management_db?useSSL=false&serverTimezone=UTC");
+                this.username = EnvConfig.get("DB_USERNAME", "root");
+                this.password = EnvConfig.get("DB_PASSWORD", "");
                 return;
             }
             props.load(in);

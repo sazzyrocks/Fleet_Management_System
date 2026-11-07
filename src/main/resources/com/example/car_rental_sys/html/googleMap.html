@@ -2,342 +2,639 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rental Hub Map</title>
+  <title>Rental Hub Picker - Fleet Navigation</title>
+
+  <!-- Local Leaflet 1.9.4 Assets -->
+  <link rel="stylesheet" href="./leaflet.css" />
+  <script src="./leaflet.js"></script>
+
   <style>
+    /* Critical Leaflet layout overrides to prevent tile tearing & inline wrapping in WebEngine */
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-layer {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+    }
+
+    .leaflet-container {
+      overflow: hidden !important;
+      background: #e5e3df !important;
+      width: 100% !important;
+      height: 100% !important;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .leaflet-container .leaflet-tile {
+      max-width: none !important;
+      max-height: none !important;
+      width: 256px !important;
+      height: 256px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      mix-blend-mode: normal !important;
+      visibility: inherit !important;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
+
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #242f3e;
+      background-color: #e5e3df;
     }
 
-    #map-viewport {
-      position: relative;
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100%;
       height: 100%;
-      background-color: #242f3e;
-      overflow: hidden;
+      background: #e5e3df;
+      z-index: 1;
     }
 
-    /* Google Maps Floating Search Bar */
-    #pac-input {
+    /* Floating Search Bar */
+    .search-box-container {
       position: absolute;
-      top: 15px;
-      left: 15px;
-      z-index: 100;
-      width: 320px;
-      height: 36px;
-      padding: 0 14px;
-      background: #ffffff;
-      border: 1px solid #dcdcdc;
-      border-radius: 2px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-      color: #333333;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    #pac-input:focus {
-      border-color: #4d90fe;
-      box-shadow: 0 2px 8px rgba(77, 144, 254, 0.4);
-    }
-    #pac-input::placeholder {
-      color: #757575;
-    }
-
-    /* Google Maps Center Red Pin */
-    .pin-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -100%);
-      z-index: 50;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 1000;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
+      gap: 8px;
     }
 
-    /* Authentic Google Maps White Info Window */
-    .info-window {
-      background: #ffffff;
-      border-radius: 3px;
-      padding: 12px 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-      min-width: 250px;
-      max-width: 290px;
-      color: #333333;
+    .search-wrapper {
       position: relative;
-      cursor: pointer;
-      margin-bottom: 2px;
-      animation: fadeIn 0.25s ease-out;
+      flex: 1;
     }
 
-    .info-title {
-      font-size: 13.5px;
-      font-weight: bold;
-      color: #202124;
-      line-height: 1.35;
-      margin-bottom: 5px;
-    }
-
-    .info-address {
-      font-size: 11.5px;
-      color: #5f6368;
-      line-height: 1.45;
-      margin-bottom: 8px;
-    }
-
-    .info-link {
-      font-size: 11px;
-      color: #1a73e8;
-      font-weight: 500;
-      text-decoration: none;
-      display: inline-block;
-      margin-bottom: 10px;
-    }
-    .info-link:hover {
-      text-decoration: underline;
-    }
-
-    .select-btn {
+    .search-input {
       width: 100%;
-      background: #1a73e8;
+      height: 44px;
+      padding: 0 42px 0 40px;
+      background: rgba(22, 27, 34, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
       color: #ffffff;
-      border: none;
-      padding: 7px 12px;
-      border-radius: 3px;
-      font-weight: 600;
-      font-size: 12px;
+      font-size: 13.5px;
+      outline: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: #165dff;
+      box-shadow: 0 8px 28px rgba(22, 93, 255, 0.35);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      color: #86909c;
+      pointer-events: none;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #86909c;
       cursor: pointer;
+      font-size: 14px;
+      display: none;
+    }
+
+    .search-clear:hover {
+      color: #ffffff;
+    }
+
+    /* Autocomplete Dropdown */
+    .search-results {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      right: 0;
+      background: rgba(22, 27, 34, 0.98);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      display: none;
+      z-index: 1001;
+    }
+
+    .search-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: #e5e6eb;
+      font-size: 12.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       transition: background 0.15s;
     }
-    .select-btn:hover {
-      background: #1557b0;
+
+    .search-item:hover {
+      background: #165dff;
+      color: #ffffff;
     }
 
-    /* Info Window Downward Arrow Pointer */
-    .info-arrow {
-      width: 0;
-      height: 0;
-      border-left: 9px solid transparent;
-      border-right: 9px solid transparent;
-      border-top: 9px solid #ffffff;
-      margin: -1px auto 0 auto;
-      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+    .search-item:last-child {
+      border-bottom: none;
     }
 
-    /* Red Google Location Marker Pin */
-    .google-marker {
-      width: 26px;
-      height: 26px;
-      background: radial-gradient(circle at 35% 35%, #ea4335, #c5221f);
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2px solid #ffffff;
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
-      margin-top: 4px;
-      position: relative;
-    }
-    .google-marker::after {
-      content: '';
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: #ffffff;
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    /* Bottom Google Branding & Watermarks */
-    .google-bottom-left {
-      position: absolute;
-      bottom: 8px;
-      left: 14px;
-      z-index: 10;
+    /* Layer Toggle Button */
+    .layer-btn {
+      height: 44px;
+      padding: 0 16px;
+      background: rgba(22, 27, 34, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      opacity: 0.85;
-      pointer-events: none;
-    }
-    .google-logo-text {
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: bold;
-      letter-spacing: -0.5px;
-    }
-    .google-sub-text {
-      color: #9aa0a6;
-      font-size: 11px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      transition: all 0.2s ease;
+      white-space: nowrap;
     }
 
-    .google-bottom-right {
-      position: absolute;
-      bottom: 8px;
-      right: 14px;
-      z-index: 10;
-      display: flex;
-      gap: 12px;
-      color: #9aa0a6;
-      font-size: 10px;
-      pointer-events: none;
+    .layer-btn:hover {
+      background: #165dff;
+      border-color: #165dff;
     }
 
+    /* Bottom Hub Chips Bar */
     .hub-chips-bar {
       position: absolute;
-      bottom: 30px;
+      bottom: 64px;
       left: 14px;
-      z-index: 15;
+      right: 14px;
+      z-index: 1000;
       display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .hub-chips-bar::-webkit-scrollbar {
+      display: none;
     }
 
     .hub-chip {
-      background: rgba(30, 37, 48, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 12px;
-      color: #e8eaed;
-      font-size: 11px;
-      padding: 4px 10px;
+      background: rgba(22, 27, 34, 0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #c9cdd4;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 7px 13px;
+      border-radius: 20px;
       cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+      transition: all 0.15s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .hub-chip:hover {
-      background: rgba(222, 254, 0, 0.2);
-      border-color: #defe00;
-      color: #defe00;
+      background: #165dff;
+      border-color: #165dff;
+      color: #ffffff;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+    .hub-chip.active {
+      background: #165dff;
+      border-color: #165dff;
+      color: #ffffff;
+    }
+
+    /* Bottom Action Bar */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(18, 22, 28, 0.96);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .selected-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #e5e6eb;
+      font-size: 13px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 520px;
+    }
+
+    .selected-display .pin-badge {
+      background: #f53f3f;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .confirm-btn {
+      background: #165dff;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      box-shadow: 0 4px 14px rgba(22, 93, 255, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .confirm-btn:hover {
+      background: #0e4ed8;
+      box-shadow: 0 6px 18px rgba(22, 93, 255, 0.55);
+    }
+
+    /* Custom Leaflet Popup Styling */
+    .leaflet-popup-content-wrapper {
+      background: rgba(22, 27, 34, 0.96) !important;
+      color: #ffffff !important;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      padding: 4px !important;
+    }
+    .leaflet-popup-tip {
+      background: rgba(22, 27, 34, 0.96) !important;
+    }
+    .popup-content {
+      padding: 6px 8px;
+    }
+    .popup-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .popup-addr {
+      font-size: 11.5px;
+      color: #86909c;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .popup-select-btn {
+      width: 100%;
+      background: #165dff;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .popup-select-btn:hover {
+      background: #0e4ed8;
     }
   </style>
 </head>
 <body>
 
-  <div id="map-viewport">
-    <!-- Floating Search Input -->
-    <input id="pac-input" type="text" placeholder="Search SRM AP & Andhra Pradesh Hubs" value="SRM University-AP, Amaravati" />
+  <div id="map"></div>
 
-    <!-- Google Dark Mode Vector Map Background (Authentic Amaravati & SRM AP Geography) -->
-    <svg width="100%" height="100%" style="position: absolute; top: 0; left: 0; pointer-events: none;">
-      <defs>
-        <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
-          <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#2c384a" stroke-width="0.5"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid)" />
-
-      <!-- Major Corridors & Expressways -->
-      <!-- NH16 / Chennai-Kolkata Highway -->
-      <path d="M-50,220 Q350,250 850,200" stroke="#746855" stroke-width="7" fill="none" opacity="0.8"/>
-      <path d="M-50,220 Q350,250 850,200" stroke="#f3d19c" stroke-width="3.5" fill="none"/>
-      
-      <!-- Amaravati Seed Access Road -->
-      <path d="M160,-50 Q260,320 380,650" stroke="#746855" stroke-width="8" fill="none" opacity="0.8"/>
-      <path d="M160,-50 Q260,320 380,650" stroke="#f3d19c" stroke-width="4" fill="none"/>
-
-      <!-- Secondary Roads & Connectors -->
-      <path d="M480,-50 Q430,260 620,650" stroke="#38414e" stroke-width="6" fill="none"/>
-      <path d="M-50,440 Q380,410 850,460" stroke="#38414e" stroke-width="5" fill="none"/>
-      <path d="M220,110 L590,360" stroke="#38414e" stroke-width="4" fill="none"/>
-      <path d="M290,520 L760,240" stroke="#38414e" stroke-width="3" fill="none"/>
-      <path d="M380,260 L450,420" stroke="#38414e" stroke-width="3" fill="none"/>
-
-      <!-- Krishna River Corridor -->
-      <path d="M-30,180 Q250,140 450,190 T850,120" stroke="#17263c" stroke-width="26" fill="none" stroke-linecap="round"/>
-      <path d="M-30,310 Q90,280 150,340 T220,440" stroke="#17263c" stroke-width="14" fill="none" stroke-linecap="round"/>
-
-      <!-- Area & Landmark Labels -->
-      <text x="210" y="270" fill="#9ca5b3" font-size="15" font-weight="bold" letter-spacing="1.5">AMARAVATI / NEERUKONDA</text>
-      <text x="280" y="100" fill="#757575" font-size="11">Krishna River Corridor</text>
-      <text x="170" y="125" fill="#757575" font-size="11">Prakasam Barrage</text>
-      <text x="140" y="470" fill="#757575" font-size="11">SRM University-AP Campus</text>
-      <text x="360" y="500" fill="#757575" font-size="11">Mangalagiri / AIIMS Hub</text>
-      <text x="560" y="460" fill="#757575" font-size="11">Guntur Junction</text>
-      <text x="580" y="260" fill="#757575" font-size="11">Vijayawada BZA Hub</text>
-      <text x="270" y="580" fill="#757575" font-size="11">AP State Secretariat</text>
-    </svg>
-
-    <!-- Center SRM AP Pin & Info Window -->
-    <div class="pin-container" onclick="chooseLocation('SRM University-AP, Amaravati')">
-      <div class="info-window">
-        <div class="info-title">SRM University-AP (Amaravati)</div>
-        <div class="info-address">
-          Neerukonda, Mangalagiri Mandal<br>
-          Guntur District, Amaravati<br>
-          Andhra Pradesh 522502<br>
-          India
-        </div>
-        <a href="https://maps.google.com" target="_blank" class="info-link" onclick="event.stopPropagation()">View on Google Maps</a>
-        <button class="select-btn" onclick="chooseLocation('SRM University-AP, Amaravati'); event.stopPropagation();">Select This Location</button>
-      </div>
-      <div class="info-arrow"></div>
-      <div class="google-marker"></div>
+  <!-- Top Floating Search -->
+  <div class="search-box-container">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search any location, railway hub, airport, or campus..." autocomplete="off">
+      <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+      <div class="search-results" id="searchResults"></div>
     </div>
+    <button class="layer-btn" id="layerBtn" onclick="toggleMapLayer()">🗺️ Satellite</button>
+  </div>
 
-    <!-- Quick Hub Selection Chips -->
-    <div class="hub-chips-bar">
-      <span class="hub-chip" onclick="chooseLocation('SRM AP Campus Hub (Neerukonda)'); event.stopPropagation();">📍 SRM AP Campus</span>
-      <span class="hub-chip" onclick="chooseLocation('Vijayawada Junction (BZA)'); event.stopPropagation();">🚆 Vijayawada Junction</span>
-      <span class="hub-chip" onclick="chooseLocation('Vijayawada Airport (Gannavaram - VGA)'); event.stopPropagation();">✈️ Vijayawada Airport</span>
-      <span class="hub-chip" onclick="chooseLocation('Mangalagiri AIIMS Hub'); event.stopPropagation();">🏥 Mangalagiri AIIMS</span>
-      <span class="hub-chip" onclick="chooseLocation('Guntur Central Station'); event.stopPropagation();">🏢 Guntur Central</span>
-      <span class="hub-chip" onclick="chooseLocation('Amaravati Secretariat'); event.stopPropagation();">🏛️ Amaravati Secretariat</span>
-    </div>
+  <!-- Quick Hub Chips -->
+  <div class="hub-chips-bar">
+    <div class="hub-chip active" onclick="selectHub('SRM AP Campus', 16.4632, 80.5078, 'SRM University-AP, Amaravati, Andhra Pradesh 522502')">📍 SRM AP Campus</div>
+    <div class="hub-chip" onclick="selectHub('Vijayawada Junction', 16.5175, 80.6200, 'Vijayawada Railway Station (BZA Hub), Andhra Pradesh')">🚆 Vijayawada Junction</div>
+    <div class="hub-chip" onclick="selectHub('Vijayawada Airport', 16.5304, 80.7968, 'Vijayawada International Airport (VGA), Gannavaram')">✈️ Airport (VGA)</div>
+    <div class="hub-chip" onclick="selectHub('Mangalagiri AIIMS', 16.4422, 80.5772, 'AIIMS Mangalagiri Hospital Complex, Amaravati')">🏥 Mangalagiri AIIMS</div>
+    <div class="hub-chip" onclick="selectHub('Guntur Central', 16.3007, 80.4639, 'Guntur Central Railway Terminal, Andhra Pradesh')">🏢 Guntur Central</div>
+    <div class="hub-chip" onclick="selectHub('Amaravati Secretariat', 16.5417, 80.5150, 'AP State Secretariat Complex, Velagapudi')">🏛️ Secretariat</div>
+  </div>
 
-    <!-- Bottom Left Google Watermark -->
-    <div class="google-bottom-left">
-      <span class="google-logo-text">Google</span>
-      <span class="google-sub-text">Fleet Navigation</span>
+  <!-- Bottom Confirmation Bar -->
+  <div class="bottom-bar">
+    <div class="selected-display">
+      <div class="pin-badge">📍</div>
+      <div id="selectedText">SRM University-AP, Amaravati</div>
     </div>
-
-    <!-- Bottom Right Watermark & Terms -->
-    <div class="google-bottom-right">
-      <span>Keyboard shortcuts</span>
-      <span>Map data ©2026 Google</span>
-      <span>Terms of Use</span>
-    </div>
+    <button class="confirm-btn" onclick="confirmLocation()">✓ Select This Location</button>
   </div>
 
   <script>
-    function chooseLocation(loc) {
-      if (!loc || loc.trim() === '') {
-        loc = 'SRM University-AP, Amaravati';
-      }
-      alert(loc.trim());
+    let map = null;
+    let currentMarker = null;
+    let currentTileLayer = null;
+    let currentLyr = 'm'; // 'm' = roadmap, 'y' = satellite hybrid
+    let currentPlaceName = "SRM University-AP, Amaravati";
+    let searchDebounce = null;
+
+    // Coords: SRM University-AP
+    const DEFAULT_LAT = 16.4632;
+    const DEFAULT_LNG = 80.5078;
+
+    function buildGoogleTileLayer(lyr) {
+      const url = `https://mt{s}.google.com/vt/lyrs=${lyr}&x={x}&y={y}&z={z}`;
+      const layer = L.tileLayer(url, {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
+        maxNativeZoom: 19,
+        tileSize: 256,
+        updateWhenIdle: false,
+        updateInterval: 100,
+        keepBuffer: 6,
+        crossOrigin: true
+      });
+
+      // Resilient tile auto-retry with high-availability CartoDB fallback (avoids OSM 403 blocks)
+      layer.on('tileerror', function(error) {
+        const tile = error.tile;
+        const retryCount = (tile._retries || 0) + 1;
+        tile._retries = retryCount;
+
+        if (retryCount <= 2) {
+          setTimeout(() => {
+            const sub = ['0', '1', '2', '3'][Math.floor(Math.random() * 4)];
+            tile.src = `https://mt${sub}.google.com/vt/lyrs=${lyr}&x=${error.coords.x}&y=${error.coords.y}&z=${error.coords.z}&_r=${retryCount}`;
+          }, 250 * retryCount);
+        } else if (lyr === 'm') {
+          tile.src = `https://a.basemaps.cartocdn.com/rastertiles/voyager/${error.coords.z}/${error.coords.x}/${error.coords.y}.png`;
+        }
+      });
+
+      return layer;
     }
 
-    const input = document.getElementById('pac-input');
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        const val = input.value.trim();
-        if (val) {
-          chooseLocation(val);
+    function initMap() {
+      // 2D rendering without matrix3d animations to prevent WebKit layer tearing in JavaFX
+      map = L.map('map', {
+        center: [DEFAULT_LAT, DEFAULT_LNG],
+        zoom: 14,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false,
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true
+      });
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      currentTileLayer = buildGoogleTileLayer(currentLyr).addTo(map);
+
+      setTimeout(() => { if (map) map.invalidateSize(false); }, 150);
+      setTimeout(() => { if (map) map.invalidateSize(false); }, 400);
+
+      // Custom high-contrast marker icon
+      const customPin = L.divIcon({
+        className: 'custom-map-pin',
+        html: '<div style="background:#165dff;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 12px rgba(22,93,255,0.85);"></div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      currentMarker = L.marker([DEFAULT_LAT, DEFAULT_LNG], {
+        icon: customPin,
+        draggable: true
+      }).addTo(map);
+
+      updatePopup("SRM University-AP (Amaravati)", "Neerukonda, Mangalagiri Mandal, Andhra Pradesh 522502");
+
+      // Click anywhere on map to pin
+      map.on('click', function(e) {
+        setPinnedLocation(e.latlng.lat, e.latlng.lng);
+      });
+
+      // Drag marker
+      currentMarker.on('dragend', function(e) {
+        const pos = e.target.getLatLng();
+        setPinnedLocation(pos.lat, pos.lng);
+      });
+
+      // Search input handler
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', function() {
+        const q = this.value.trim();
+        document.getElementById('searchClear').style.display = q ? 'block' : 'none';
+        clearTimeout(searchDebounce);
+        if (q.length >= 3) {
+          searchDebounce = setTimeout(() => searchNominatim(q), 300);
+        } else {
+          closeSearchResults();
         }
+      });
+
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const q = this.value.trim();
+          if (q) searchNominatim(q, true);
+        }
+      });
+
+      // Single initial sizing after WebEngine DOM layout stabilizes
+      setTimeout(() => {
+        if (map) map.invalidateSize(false);
+      }, 150);
+    }
+
+    function setPinnedLocation(lat, lng) {
+      currentMarker.setLatLng([lat, lng]);
+
+      const tempName = `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+      updateSelection(tempName);
+      updatePopup("Pinned Location", tempName);
+
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            const shortName = data.address.road || data.address.suburb || data.address.city || data.address.town || data.display_name.split(',')[0];
+            const fullName = shortName + ", " + (data.address.city || data.address.state || "AP");
+            updateSelection(fullName);
+            updatePopup(shortName, data.display_name);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function updatePopup(title, address) {
+      const html = `
+        <div class="popup-content">
+          <div class="popup-title">${title}</div>
+          <div class="popup-addr">${address}</div>
+          <button class="popup-select-btn" onclick="confirmLocation()">Select This Location</button>
+        </div>
+      `;
+      currentMarker.bindPopup(html).openPopup();
+    }
+
+    function updateSelection(name) {
+      currentPlaceName = name;
+      document.getElementById('selectedText').innerText = name;
+    }
+
+    function selectHub(chipName, lat, lng, fullAddress) {
+      document.querySelectorAll('.hub-chip').forEach(c => c.classList.remove('active'));
+      if (window.event && window.event.target) window.event.target.classList.add('active');
+
+      // Instant 2D view centering without matrix3d animations to prevent tearing
+      map.setView([lat, lng], 15, { animate: false });
+      currentMarker.setLatLng([lat, lng]);
+      updateSelection(chipName);
+      updatePopup(chipName, fullAddress);
+      setTimeout(() => { if (map) map.invalidateSize(false); }, 60);
+    }
+
+    function searchNominatim(query, autoSelectFirst = false) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=in`;
+      fetch(url)
+        .then(res => res.json())
+        .then(results => {
+          if (!results || results.length === 0) {
+            closeSearchResults();
+            return;
+          }
+          if (autoSelectFirst) {
+            selectSearchResult(results[0]);
+            return;
+          }
+          renderSearchResults(results);
+        })
+        .catch(() => closeSearchResults());
+    }
+
+    function renderSearchResults(results) {
+      const container = document.getElementById('searchResults');
+      container.innerHTML = '';
+      results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'search-item';
+        div.innerHTML = `<span>📍</span> <span>${item.display_name}</span>`;
+        div.onclick = () => selectSearchResult(item);
+        container.appendChild(div);
+      });
+      container.style.display = 'block';
+    }
+
+    function selectSearchResult(item) {
+      const lat = parseFloat(item.lat);
+      const lon = parseFloat(item.lon);
+      const name = item.display_name.split(',')[0] + ", " + (item.address?.city || item.address?.state || "AP");
+
+      map.setView([lat, lon], 15, { animate: false });
+      currentMarker.setLatLng([lat, lon]);
+      updateSelection(name);
+      updatePopup(item.display_name.split(',')[0], item.display_name);
+      closeSearchResults();
+    }
+
+    function closeSearchResults() {
+      const container = document.getElementById('searchResults');
+      container.style.display = 'none';
+      container.innerHTML = '';
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchClear').style.display = 'none';
+      closeSearchResults();
+    }
+
+    function toggleMapLayer() {
+      const btn = document.getElementById('layerBtn');
+      if (currentTileLayer) map.removeLayer(currentTileLayer);
+
+      if (currentLyr === 'm') {
+        currentLyr = 'y'; // Hybrid satellite
+        currentTileLayer = buildGoogleTileLayer('y').addTo(map);
+        btn.innerText = '🗺️ Roadmap';
+        document.body.style.backgroundColor = '#1a1e24';
+        document.getElementById('map').style.backgroundColor = '#1a1e24';
+      } else {
+        currentLyr = 'm'; // Roadmap
+        currentTileLayer = buildGoogleTileLayer('m').addTo(map);
+        btn.innerText = '🗺️ Satellite';
+        document.body.style.backgroundColor = '#e5e3df';
+        document.getElementById('map').style.backgroundColor = '#e5e3df';
       }
+    }
+
+    // JavaFX Event Trigger: alert(locationName) communicates with BrowserFrame
+    function confirmLocation() {
+      if (currentPlaceName) {
+        alert(currentPlaceName);
+      }
+    }
+
+    window.addEventListener('resize', function() {
+      if (map) map.invalidateSize(false);
     });
 
-    // Also support clicking anywhere on the map to pick custom location coordinates
-    document.getElementById('map-viewport').addEventListener('click', function(e) {
-      if (e.target.closest('.pin-container') || e.target.closest('#pac-input') || e.target.closest('.hub-chips-bar')) return;
-      chooseLocation('SRM University-AP, Amaravati');
-    });
+    window.addEventListener('DOMContentLoaded', initMap);
   </script>
 </body>
 </html>

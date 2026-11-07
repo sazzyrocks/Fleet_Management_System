@@ -21,6 +21,8 @@ import java.util.List;
 
 /**
  * Controller for In-Vehicle Infotainment Media and Music Player.
+ * Maintains persistent singleton playback state to prevent audio duplication
+ * and keep song progress perfectly in sync across cockpit view navigation.
  */
 public class MusicPlayerController {
 
@@ -33,54 +35,197 @@ public class MusicPlayerController {
     @FXML
     private Label songsterLabel, songNameLabel, playedTimeLabel, totalTimeLabel;
 
-    private MediaPlayer player;
-    private int currentSongIndex = 0;
-    private double currentProgressSeconds = 0;
-    private double totalDurationSeconds = 210; // Default fallback: 3m 30s
-    private boolean isPlaying = false;
-    private Timeline progressTimeline;
+    // Singleton playback state across scene navigations
+    private static MediaPlayer sharedPlayer;
+    private static int currentSongIndex = 0;
+    private static double currentProgressSeconds = 0;
+    private static double totalDurationSeconds = 210;
+    private static boolean isPlaying = false;
+    private static final List<TrackInfo> playlist = new ArrayList<>();
+    private static Timeline progressTimeline;
+    private static MusicPlayerController activeInstance;
 
     private static class TrackInfo {
-        String title;
-        String artist;
-        String filePath;
+        final String title;
+        final String artist;
+        final String filePath;
+        final String coverPath;
 
-        TrackInfo(String title, String artist, String filePath) {
+        TrackInfo(String title, String artist, String filePath, String coverPath) {
             this.title = title;
             this.artist = artist;
             this.filePath = filePath;
+            this.coverPath = coverPath;
         }
     }
 
-    private final List<TrackInfo> playlist = new ArrayList<>();
-
     @FXML
     private void initialize() {
-        discoverTracks();
-        loadTrack(currentSongIndex);
+        activeInstance = this;
+        if (playlist.isEmpty()) {
+            discoverTracks();
+        }
+        initProgressBarClick();
         initProgressTimeline();
+        syncUI();
+    }
+
+    /**
+     * Pauses playback when user navigates away from the cockpit.
+     */
+    public static synchronized void pausePlayback() {
+        isPlaying = false;
+        if (sharedPlayer != null) {
+            try {
+                sharedPlayer.pause();
+            } catch (Exception ignored) {
+            }
+        }
+        if (activeInstance != null) {
+            activeInstance.setPlayIcon(false);
+        }
+    }
+
+    /**
+     * Stops and releases media resources completely.
+     */
+    public static synchronized void stopPlayback() {
+        isPlaying = false;
+        currentProgressSeconds = 0;
+        if (sharedPlayer != null) {
+            try {
+                sharedPlayer.stop();
+                sharedPlayer.dispose();
+            } catch (Exception ignored) {
+            }
+            sharedPlayer = null;
+        }
+        if (activeInstance != null) {
+            activeInstance.setPlayIcon(false);
+            activeInstance.resetProgressBar();
+            activeInstance.updateDisplayTimes();
+        }
+    }
+
+    private void syncUI() {
+        if (playlist.isEmpty()) return;
+
+        TrackInfo track = playlist.get(currentSongIndex % playlist.size());
+        if (songsterLabel != null) {
+            songsterLabel.setText(track.title);
+        }
+        if (songNameLabel != null) {
+            songNameLabel.setText(track.artist);
+        }
+
+        renderCover(track);
+        updateDisplayTimes();
+        updateProgressBar();
+        setPlayIcon(isPlaying);
+
+        // If player is not initialized yet, initialize it in paused state
+        if (sharedPlayer == null && track.filePath != null) {
+            preparePlayer(track, false);
+        }
     }
 
     private void discoverTracks() {
         playlist.clear();
-        File musicDir = new File("src/main/resources/com/example/car_rental_sys/music");
-        if (musicDir.exists() && musicDir.isDirectory()) {
+
+        File musicDir = null;
+        File[] candidateDirs = new File[] {
+            new File("src/main/resources/com/example/car_rental_sys/music"),
+            new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/music"),
+            new File("target/classes/com/example/car_rental_sys/music"),
+            new File("Fleet_Managemnet_System/target/classes/com/example/car_rental_sys/music")
+        };
+
+        for (File dir : candidateDirs) {
+            if (dir.exists() && dir.isDirectory()) {
+                musicDir = dir;
+                break;
+            }
+        }
+
+        if (musicDir != null) {
             File[] files = musicDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".mp3"));
-            if (files != null) {
+            if (files != null && files.length > 0) {
+                java.util.Arrays.sort(files, java.util.Comparator.comparing(File::getName));
                 for (File file : files) {
-                    String base = file.getName().substring(0, file.getName().length() - 4);
-                    String[] parts = base.split("-");
-                    String artist = parts.length > 0 ? parts[0].replace("_", " ") : "Unknown Artist";
-                    String title = parts.length > 1 ? parts[1].replace("_", " ") : base.replace("_", " ");
-                    playlist.add(new TrackInfo(title, artist, file.getAbsolutePath()));
+                    String fullPath = file.getAbsolutePath();
+                    String fileName = file.getName();
+                    int lastDot = fileName.lastIndexOf('.');
+                    String baseName = (lastDot > 0) ? fileName.substring(0, lastDot) : fileName;
+
+                    // Automatically check for matching cover image (.png, .jpg, .jpeg)
+                    String coverPath = null;
+                    File parentDir = file.getParentFile();
+                    for (String ext : new String[]{".png", ".jpg", ".jpeg", ".PNG", ".JPG"}) {
+                        File candidateCover = new File(parentDir, baseName + ext);
+                        if (candidateCover.exists() && candidateCover.isFile()) {
+                            coverPath = candidateCover.getAbsolutePath();
+                            break;
+                        }
+                    }
+
+                    // Format: "Song_Name-Artist.mp3"
+                    String songTitle;
+                    String artist;
+                    if (baseName.contains("-")) {
+                        String[] parts = baseName.split("-", 2);
+                        songTitle = parts[0].replace("_", " ").trim();
+                        artist = parts[1].replace("_", " ").trim();
+                    } else {
+                        songTitle = baseName.replace("_", " ").trim();
+                        artist = "Fleet Audio";
+                    }
+
+                    playlist.add(new TrackInfo(songTitle, artist, fullPath, coverPath));
                 }
             }
         }
 
         if (playlist.isEmpty()) {
-            playlist.add(new TrackInfo("Fleet Radio Station", "Ambient Cruiser", null));
-            playlist.add(new TrackInfo("Highway Horizon", "Electric Pulse", null));
-            playlist.add(new TrackInfo("Smooth Commute", "Urban Groove", null));
+            playlist.add(new TrackInfo("Fleet Radio Station", "Ambient Cruiser", null, null));
+            playlist.add(new TrackInfo("Highway Horizon", "Electric Pulse", null, null));
+            playlist.add(new TrackInfo("Smooth Commute", "Urban Groove", null, null));
+        }
+    }
+
+    private void preparePlayer(TrackInfo track, boolean startPlaying) {
+        if (sharedPlayer != null) {
+            try {
+                sharedPlayer.stop();
+                sharedPlayer.dispose();
+            } catch (Exception ignored) {
+            }
+            sharedPlayer = null;
+        }
+
+        if (track.filePath == null) return;
+
+        try {
+            Media media = new Media(new File(track.filePath).toURI().toString());
+            sharedPlayer = new MediaPlayer(media);
+            sharedPlayer.setOnReady(() -> {
+                Duration duration = sharedPlayer.getMedia().getDuration();
+                if (duration != null && !duration.isUnknown()) {
+                    totalDurationSeconds = duration.toSeconds();
+                    updateDisplayTimes();
+                }
+                if (currentProgressSeconds > 0) {
+                    sharedPlayer.seek(Duration.seconds(currentProgressSeconds));
+                }
+            });
+            sharedPlayer.setOnEndOfMedia(this::nextClickEvent);
+
+            if (startPlaying) {
+                isPlaying = true;
+                sharedPlayer.play();
+                setPlayIcon(true);
+            }
+        } catch (Exception e) {
+            totalDurationSeconds = 210;
         }
     }
 
@@ -88,52 +233,72 @@ public class MusicPlayerController {
         if (playlist.isEmpty()) {
             return;
         }
+        currentSongIndex = index % playlist.size();
+        currentProgressSeconds = 0;
+        TrackInfo track = playlist.get(currentSongIndex);
+        syncUI();
+        preparePlayer(track, isPlaying);
+    }
 
-        if (player != null) {
+    private void renderCover(TrackInfo track) {
+        if (musicCoverPane == null) return;
+        musicCoverPane.getChildren().clear();
+        ImageView coverView = null;
+
+        if (track.coverPath != null) {
             try {
-                player.stop();
+                File coverFile = new File(track.coverPath);
+                if (coverFile.exists()) {
+                    Image img = new Image(coverFile.toURI().toString());
+                    coverView = new ImageView(img);
+                }
             } catch (Exception ignored) {
             }
-            player = null;
         }
 
-        TrackInfo track = playlist.get(index % playlist.size());
-        if (songNameLabel != null) {
-            songNameLabel.setText(track.title);
-        }
-        if (songsterLabel != null) {
-            songsterLabel.setText(track.artist);
-        }
-
-        currentProgressSeconds = 0;
-        updateDisplayTimes();
-        resetProgressBar();
-
-        if (track.filePath != null) {
+        if (coverView == null) {
             try {
-                Media media = new Media(new File(track.filePath).toURI().toString());
-                player = new MediaPlayer(media);
-                player.setOnReady(() -> {
-                    Duration duration = player.getMedia().getDuration();
-                    if (duration != null && !duration.isUnknown()) {
-                        totalDurationSeconds = duration.toSeconds();
-                        updateDisplayTimes();
-                    }
-                });
-            } catch (Exception e) {
-                // Fallback to synthetic duration
-                totalDurationSeconds = 210;
+                String baseName = track.title.replace(" ", "_") + "-" + track.artist.replace(" ", "_") + ".png";
+                URL res = getClass().getResource("/com/example/car_rental_sys/music/" + baseName);
+                if (res != null) {
+                    coverView = new ImageView(new Image(res.toExternalForm()));
+                }
+            } catch (Exception ignored) {
             }
-        } else {
-            totalDurationSeconds = 210;
+        }
+
+        if (coverView == null) {
+            try {
+                URL res = getClass().getResource("/com/example/car_rental_sys/image/UI/car.png");
+                if (res != null) {
+                    coverView = new ImageView(new Image(res.toExternalForm()));
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (coverView != null) {
+            coverView.setFitWidth(90.0);
+            coverView.setFitHeight(90.0);
+            coverView.setPreserveRatio(false);
+
+            Rectangle clip = new Rectangle(90.0, 90.0);
+            clip.setArcWidth(30.0);
+            clip.setArcHeight(30.0);
+            coverView.setClip(clip);
+
+            musicCoverPane.getChildren().add(coverView);
         }
     }
 
     private void initProgressTimeline() {
+        if (progressTimeline != null) {
+            progressTimeline.stop();
+        }
         progressTimeline = new Timeline(new KeyFrame(Duration.seconds(1), event -> {
             if (isPlaying) {
-                if (player != null) {
-                    currentProgressSeconds = player.getCurrentTime().toSeconds();
+                if (sharedPlayer != null) {
+                    currentProgressSeconds = sharedPlayer.getCurrentTime().toSeconds();
                 } else {
                     currentProgressSeconds += 1.0;
                     if (currentProgressSeconds >= totalDurationSeconds) {
@@ -160,9 +325,34 @@ public class MusicPlayerController {
 
     private void updateProgressBar() {
         if (processBarPane != null && totalDurationSeconds > 0) {
-            double maxWidth = 392.0;
-            double width = Math.min(maxWidth, (currentProgressSeconds / totalDurationSeconds) * maxWidth);
-            processBarPane.setPrefWidth(width);
+            double maxWidth = 280.0;
+            if (processBarPane.getParent() instanceof Pane) {
+                double parentW = ((Pane) processBarPane.getParent()).getPrefWidth();
+                if (parentW > 0) maxWidth = parentW;
+            }
+            double progress = Math.max(0.0, Math.min(1.0, currentProgressSeconds / totalDurationSeconds));
+            processBarPane.setPrefWidth(progress * maxWidth);
+        }
+    }
+
+    private void initProgressBarClick() {
+        if (processBarPane != null && processBarPane.getParent() instanceof Pane) {
+            Pane trackBackground = (Pane) processBarPane.getParent();
+            trackBackground.setStyle(trackBackground.getStyle() + "; -fx-cursor: hand;");
+            trackBackground.setOnMouseClicked(event -> {
+                if (totalDurationSeconds <= 0) return;
+                double maxWidth = trackBackground.getPrefWidth() > 0 ? trackBackground.getPrefWidth() : 280.0;
+                double clickX = Math.max(0, Math.min(maxWidth, event.getX()));
+                currentProgressSeconds = (clickX / maxWidth) * totalDurationSeconds;
+                if (sharedPlayer != null) {
+                    try {
+                        sharedPlayer.seek(Duration.seconds(currentProgressSeconds));
+                    } catch (Exception ignored) {
+                    }
+                }
+                updateDisplayTimes();
+                updateProgressBar();
+            });
         }
     }
 
@@ -183,17 +373,20 @@ public class MusicPlayerController {
     private void pauseClickEvent() {
         isPlaying = !isPlaying;
         if (isPlaying) {
-            if (player != null) {
+            if (sharedPlayer == null) {
+                TrackInfo track = playlist.get(currentSongIndex % playlist.size());
+                preparePlayer(track, true);
+            } else {
                 try {
-                    player.play();
+                    sharedPlayer.play();
                 } catch (Exception ignored) {
                 }
             }
             setPlayIcon(true);
         } else {
-            if (player != null) {
+            if (sharedPlayer != null) {
                 try {
-                    player.pause();
+                    sharedPlayer.pause();
                 } catch (Exception ignored) {
                 }
             }
@@ -219,34 +412,24 @@ public class MusicPlayerController {
 
     @FXML
     private void nextClickEvent() {
-        currentSongIndex = (currentSongIndex + 1) % playlist.size();
-        loadTrack(currentSongIndex);
-        if (isPlaying && player != null) {
-            try {
-                player.play();
-            } catch (Exception ignored) {
-            }
-        }
+        if (playlist.isEmpty()) return;
+        int nextIndex = (currentSongIndex + 1) % playlist.size();
+        loadTrack(nextIndex);
     }
 
     @FXML
     private void previousClickEvent() {
-        currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
-        loadTrack(currentSongIndex);
-        if (isPlaying && player != null) {
-            try {
-                player.play();
-            } catch (Exception ignored) {
-            }
-        }
+        if (playlist.isEmpty()) return;
+        int prevIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
+        loadTrack(prevIndex);
     }
 
     @FXML
     private void add10() {
         currentProgressSeconds = Math.min(totalDurationSeconds, currentProgressSeconds + 10);
-        if (player != null) {
+        if (sharedPlayer != null) {
             try {
-                player.seek(Duration.seconds(currentProgressSeconds));
+                sharedPlayer.seek(Duration.seconds(currentProgressSeconds));
             } catch (Exception ignored) {
             }
         }
@@ -257,9 +440,9 @@ public class MusicPlayerController {
     @FXML
     private void minus10() {
         currentProgressSeconds = Math.max(0, currentProgressSeconds - 10);
-        if (player != null) {
+        if (sharedPlayer != null) {
             try {
-                player.seek(Duration.seconds(currentProgressSeconds));
+                sharedPlayer.seek(Duration.seconds(currentProgressSeconds));
             } catch (Exception ignored) {
             }
         }
@@ -267,4 +450,3 @@ public class MusicPlayerController {
         updateProgressBar();
     }
 }
-

@@ -23,6 +23,11 @@ public class GeoLocationService {
     private static final Logger LOGGER = Logger.getLogger(GeoLocationService.class.getName());
     private static final String IP_API_ENDPOINT = EnvConfig.get("IP_API_URL", "http://ip-api.com/json/");
     private static final int TIMEOUT_MS = 4000;
+    private static volatile GeoLocation cachedLocation = null;
+
+    public GeoLocation getCachedLocation() {
+        return cachedLocation;
+    }
 
     public record GeoLocation(
             String queryIp,
@@ -66,6 +71,9 @@ public class GeoLocationService {
      * @return {@link GeoLocation} record containing geographic coordinates and ISP details
      */
     public GeoLocation fetchCurrentLocation() {
+        if (cachedLocation != null && cachedLocation.success()) {
+            return cachedLocation;
+        }
         LOGGER.info("Initiating external REST API request to IP-API: " + IP_API_ENDPOINT);
         try {
             URL url = URI.create(IP_API_ENDPOINT).toURL();
@@ -103,6 +111,7 @@ public class GeoLocationService {
                         );
                         LOGGER.info("External Geolocation REST API Success: " + loc.getFormattedLocation()
                                 + " (Lat: " + loc.latitude() + ", Lon: " + loc.longitude() + ")");
+                        cachedLocation = loc;
                         return loc;
                     }
                 }
@@ -110,7 +119,11 @@ public class GeoLocationService {
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "External IP Geolocation API call failed; applying resilient campus fallback", e);
         }
-        return GeoLocation.fallback();
+        GeoLocation fb = GeoLocation.fallback();
+        if (cachedLocation == null) {
+            cachedLocation = fb;
+        }
+        return fb;
     }
 }
 

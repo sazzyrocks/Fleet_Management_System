@@ -85,6 +85,11 @@ public class loginPageController extends Controller {
             resetBtn.setVisible(false);
         }
 
+        // Keep passwordInputPass and passwordInputText strictly synchronized
+        if (passwordInputPass != null && passwordInputText != null) {
+            passwordInputText.textProperty().bindBidirectional(passwordInputPass.textProperty());
+        }
+
         setupEnterKeyHandler();
     }
 
@@ -164,17 +169,15 @@ public class loginPageController extends Controller {
         }
 
         if (passwordInputPass.isVisible()) {
-            passwordInputText.setText(passwordInputPass.getText());
             passwordInputPass.setVisible(false);
             passwordInputText.setVisible(true);
             passwordInputText.requestFocus();
-            passwordInputText.positionCaret(passwordInputText.getText().length());
+            passwordInputText.positionCaret(passwordInputText.getText() != null ? passwordInputText.getText().length() : 0);
         } else {
-            passwordInputPass.setText(passwordInputText.getText());
             passwordInputText.setVisible(false);
             passwordInputPass.setVisible(true);
             passwordInputPass.requestFocus();
-            passwordInputPass.positionCaret(passwordInputPass.getText().length());
+            passwordInputPass.positionCaret(passwordInputPass.getText() != null ? passwordInputPass.getText().length() : 0);
         }
     }
 
@@ -228,10 +231,13 @@ public class loginPageController extends Controller {
     }
 
     private String getEnteredPassword() {
-        if (passwordInputPass != null && passwordInputPass.isVisible()) {
-            return passwordInputPass.getText();
-        } else if (passwordInputText != null) {
-            return passwordInputText.getText();
+        String p1 = passwordInputPass != null ? passwordInputPass.getText() : null;
+        if (p1 != null && !p1.isBlank()) {
+            return p1.trim();
+        }
+        String p2 = passwordInputText != null ? passwordInputText.getText() : null;
+        if (p2 != null && !p2.isBlank()) {
+            return p2.trim();
         }
         return "";
     }

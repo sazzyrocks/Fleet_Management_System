@@ -34,6 +34,8 @@ public class StatusContainer {
     public static int currentCarID = 1;
     public static Order currentOrder = null;
     public static int currentOrderID = 1;
+    public static int currentContinueOrderID = -1;
+    public static com.example.car_rental_sys.model.DeliveryOrder activeDeliveryOrder = null;
 
     public static String paginationUsage = "order";
     public static boolean ifInCommentPage = false;
