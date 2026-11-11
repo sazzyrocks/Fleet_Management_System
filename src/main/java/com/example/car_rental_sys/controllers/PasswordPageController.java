@@ -27,6 +27,9 @@ public class PasswordPageController extends Controller {
     private Pane panelSettings;
 
     @FXML
+    private Button btnBackToMain;
+
+    @FXML
     private ImageView ivAvatar;
 
     @FXML
@@ -62,6 +65,61 @@ public class PasswordPageController extends Controller {
     public void initialize() {
         currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
         loadUserInfo();
+        initBackBtn();
+    }
+
+    private void initBackBtn() {
+        if (btnBackToMain != null) {
+            User user = currentUser != null ? currentUser : ServiceFactory.getInstance().getAuthService().getCurrentUser();
+            if (user != null && user.getRole() == com.example.car_rental_sys.model.Role.DRIVER) {
+                btnBackToMain.setText("← Back to Workplace");
+            } else if (user != null && user.getRole() == com.example.car_rental_sys.model.Role.CUSTOMER) {
+                btnBackToMain.setText("← Back to Orders");
+            } else if (user != null && user.getRole() == com.example.car_rental_sys.model.Role.ADMIN) {
+                btnBackToMain.setText("← Back to Overview");
+            } else {
+                btnBackToMain.setText("← Back");
+            }
+
+            btnBackToMain.setOnAction(e -> handleBackNavigation());
+            btnBackToMain.setOnMouseClicked(e -> handleBackNavigation());
+        }
+    }
+
+    @FXML
+    private void backToDashboardClicked(javafx.event.Event event) {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        User user = currentUser != null ? currentUser : ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        com.example.car_rental_sys.model.Role role = user != null ? user.getRole() : null;
+
+        if (role == com.example.car_rental_sys.model.Role.DRIVER) {
+            if (DriverMainPageController.driverMainPageInstance != null 
+                    && DriverMainPageController.driverMainPageInstance.mainPane != null
+                    && DriverMainPageController.driverMainPageInstance.mainPane.getScene() != null) {
+                DriverMainPageController.driverMainPageInstance.showWorkplace();
+            } else {
+                com.example.car_rental_sys.util.SceneManager.switchScene("driverServicePage.fxml");
+            }
+            return;
+        }
+
+        if (role == com.example.car_rental_sys.model.Role.ADMIN) {
+            if (AdminServiceController.instance != null) {
+                AdminServiceController.instance.showDashboardPage();
+            } else {
+                com.example.car_rental_sys.util.SceneManager.switchScene("adminServicePage.fxml");
+            }
+            return;
+        }
+
+        if (CustomerServiceController.instance != null) {
+            CustomerServiceController.instance.showOrderPage();
+        } else {
+            com.example.car_rental_sys.util.SceneManager.switchScene("customerServicePage.fxml");
+        }
     }
 
     private void loadUserInfo() {

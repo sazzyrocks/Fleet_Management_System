@@ -66,6 +66,9 @@ public class PersonalPageController extends Controller {
     private Button ivCancelBtn;
 
     @FXML
+    private Button btnBackToMain;
+
+    @FXML
     private Button backBtn;
 
     @FXML
@@ -81,6 +84,25 @@ public class PersonalPageController extends Controller {
         currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
         loadUserData();
         setupCharacterCounters();
+        initBackBtn();
+    }
+
+    private void initBackBtn() {
+        if (btnBackToMain != null) {
+            User user = currentUser != null ? currentUser : ServiceFactory.getInstance().getAuthService().getCurrentUser();
+            if (user != null && user.getRole() == Role.DRIVER) {
+                btnBackToMain.setText("← Back to Workplace");
+            } else if (user != null && user.getRole() == Role.CUSTOMER) {
+                btnBackToMain.setText("← Back to Orders");
+            } else if (user != null && user.getRole() == Role.ADMIN) {
+                btnBackToMain.setText("← Back to Overview");
+            } else {
+                btnBackToMain.setText("← Back");
+            }
+
+            btnBackToMain.setOnAction(e -> navigateBack());
+            btnBackToMain.setOnMouseClicked(e -> navigateBack());
+        }
     }
 
     private void loadUserData() {
@@ -157,21 +179,34 @@ public class PersonalPageController extends Controller {
     }
 
     private void navigateBack() {
-        if (currentUser != null && currentUser.getRole() != null) {
-            switch (currentUser.getRole()) {
-                case ADMIN:
-                    SceneManager.switchScene("adminServicePage.fxml");
-                    return;
-                case DRIVER:
-                    SceneManager.switchScene("driverServicePage.fxml");
-                    return;
-                case CUSTOMER:
-                default:
-                    SceneManager.switchScene("customerServicePage.fxml");
-                    return;
+        User user = currentUser != null ? currentUser : ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        Role role = user != null ? user.getRole() : null;
+
+        if (role == Role.DRIVER) {
+            if (DriverMainPageController.driverMainPageInstance != null 
+                    && DriverMainPageController.driverMainPageInstance.mainPane != null
+                    && DriverMainPageController.driverMainPageInstance.mainPane.getScene() != null) {
+                DriverMainPageController.driverMainPageInstance.showWorkplace();
+            } else {
+                SceneManager.switchScene("driverServicePage.fxml");
             }
+            return;
         }
-        SceneManager.switchScene("customerServicePage.fxml");
+
+        if (role == Role.ADMIN) {
+            if (AdminServiceController.instance != null) {
+                AdminServiceController.instance.showDashboardPage();
+            } else {
+                SceneManager.switchScene("adminServicePage.fxml");
+            }
+            return;
+        }
+
+        if (CustomerServiceController.instance != null) {
+            CustomerServiceController.instance.showOrderPage();
+        } else {
+            SceneManager.switchScene("customerServicePage.fxml");
+        }
     }
 
     @FXML

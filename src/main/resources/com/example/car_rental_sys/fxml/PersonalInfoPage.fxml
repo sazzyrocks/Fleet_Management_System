@@ -9,6 +9,11 @@
 <Pane fx:id="panelSetting" prefHeight="700.0" prefWidth="820.0" style="-fx-background-color: transparent;"
       stylesheets="@../style/settingComponentLight.css" xmlns="http://javafx.com/javafx/8"
       xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.car_rental_sys.controllers.PersonalPageController">
+   <Button fx:id="btnBackToMain" layoutX="55.0" layoutY="42.0" mnemonicParsing="false" onAction="#backToDashboardClicked" onMouseClicked="#backToDashboardClicked" prefHeight="34.0" prefWidth="180.0" style="-fx-background-color: #f2f3f5; -fx-background-radius: 6px; -fx-cursor: hand; -fx-text-fill: #165dff; -fx-font-weight: bold; -fx-font-size: 13px;" text="← Back to Workplace">
+      <font>
+         <Font name="System Bold" size="13.0"/>
+      </font>
+   </Button>
    <ImageView fx:id="ivAvatar" fitHeight="80.0" fitWidth="80.0" layoutX="299.0" layoutY="35.0" pickOnBounds="true"
               preserveRatio="true"/>
    <Button fx:id="ivDeleteBtn" layoutX="393.0" layoutY="57.0" mnemonicParsing="false" onMouseClicked="#deleteClicked"

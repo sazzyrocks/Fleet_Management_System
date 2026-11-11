@@ -19,8 +19,8 @@
         </font>
     </Label>
     <Line endX="109.0" layoutX="147.0" layoutY="415.0" startX="-123.0" stroke="#e3e3e399"/>
-    <Pane layoutX="24.0" layoutY="442.0" prefHeight="60.0" prefWidth="233.0"
-          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden;">
+    <Pane fx:id="rowProfile" layoutX="24.0" layoutY="442.0" prefHeight="60.0" prefWidth="233.0"
+          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden; -fx-cursor: hand;">
         <Pane fx:id="item1" layoutY="10.0" prefHeight="40.0" prefWidth="180.0"
               style="-fx-background-color: transparent; -fx-background-radius: 10;" styleClass="menuItem">
             <Pane prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 10;"
@@ -41,8 +41,8 @@
             <Image url="@../image/UI/right1.png"/>
         </ImageView>
     </Pane>
-    <Pane layoutX="24.0" layoutY="502.0" prefHeight="60.0" prefWidth="233.0"
-          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden;">
+    <Pane fx:id="rowMessage" layoutX="24.0" layoutY="502.0" prefHeight="60.0" prefWidth="233.0"
+          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden; -fx-cursor: hand;">
         <Pane fx:id="item2" layoutY="10.0" prefHeight="40.0" prefWidth="180.0"
               style="-fx-background-color: transparent; -fx-background-radius: 10;" styleClass="menuItem">
             <Pane prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 10;"
@@ -63,8 +63,8 @@
             <Image url="@../image/UI/right.png"/>
         </ImageView>
     </Pane>
-    <Pane layoutX="24.0" layoutY="562.0" prefHeight="60.0" prefWidth="233.0"
-          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden;">
+    <Pane fx:id="rowWorkplace" layoutX="24.0" layoutY="562.0" prefHeight="60.0" prefWidth="233.0"
+          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden; -fx-cursor: hand;">
         <Pane fx:id="item3" layoutY="10.0" prefHeight="40.0" prefWidth="180.0"
               style="-fx-background-color: transparent; -fx-background-radius: 10;" styleClass="menuItem">
             <Pane prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 10;"
@@ -85,8 +85,8 @@
             <Image url="@../image/UI/right.png"/>
         </ImageView>
     </Pane>
-    <Pane layoutX="24.0" layoutY="622.0" prefHeight="60.0" prefWidth="233.0"
-          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden;">
+    <Pane fx:id="rowSetting" layoutX="24.0" layoutY="622.0" prefHeight="60.0" prefWidth="233.0"
+          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden; -fx-cursor: hand;">
         <Pane fx:id="item4" layoutY="10.0" prefHeight="40.0" prefWidth="180.0"
               style="-fx-background-color: transparent; -fx-background-radius: 10;" styleClass="menuItem">
             <Pane prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 10;"
@@ -107,8 +107,8 @@
             <Image url="@../image/UI/right.png"/>
         </ImageView>
     </Pane>
-    <Pane layoutX="24.0" layoutY="683.0" prefHeight="60.0" prefWidth="233.0"
-          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden;">
+    <Pane fx:id="rowLogout" layoutX="24.0" layoutY="683.0" prefHeight="60.0" prefWidth="233.0"
+          style="-fx-border-color: #e8e8e8; -fx-border-style: hidden  hidden solid hidden; -fx-cursor: hand;">
         <Pane fx:id="item5" layoutY="10.0" prefHeight="40.0" prefWidth="180.0"
               style="-fx-background-color: transparent; -fx-background-radius: 10;" styleClass="menuItem">
             <Pane prefHeight="40.0" prefWidth="40.0" style="-fx-background-radius: 10;"

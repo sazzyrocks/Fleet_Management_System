@@ -16,6 +16,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -86,6 +87,10 @@ public class OrderListComponentController extends Controller {
     private List<Order> allOrders = new ArrayList<>();
     private List<Order> displayedOrders = new ArrayList<>();
     private VBox orderRowBox;
+    private ScrollPane orderScrollPane;
+    private int currentPage = 1;
+    private final int pageSize = 8;
+    private UIPagination paginationComponent;
 
     @FXML
     public void initialize() {
@@ -162,12 +167,16 @@ public class OrderListComponentController extends Controller {
         orderRowBox = new VBox(6);
         orderRowBox.setStyle("-fx-background-color: transparent;");
 
-        if (tableContainer != null) {
-            tableContainer.getChildren().setAll(orderRowBox);
-        }
+        orderScrollPane = new ScrollPane(orderRowBox);
+        orderScrollPane.setFitToWidth(true);
+        orderScrollPane.setPrefSize(460, 445);
+        orderScrollPane.setMaxHeight(445);
+        orderScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        orderScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        orderScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0;");
 
-        if (pagContainer != null) {
-            pagContainer.getChildren().setAll(new UIPagination(10, 5));
+        if (tableContainer != null) {
+            tableContainer.getChildren().setAll(orderScrollPane);
         }
 
         if (btnAllOrder != null) {
@@ -187,7 +196,7 @@ public class OrderListComponentController extends Controller {
         }
     }
 
-    private void loadOrders() {
+    public void loadOrders() {
         AsyncExecutor.getInstance().execute(() -> {
             try {
                 OrderDAO dao = DAOFactory.getInstance().getOrderDAO();
@@ -203,6 +212,7 @@ public class OrderListComponentController extends Controller {
                 Platform.runLater(() -> {
                     allOrders = orders;
                     displayedOrders = new ArrayList<>(orders);
+                    currentPage = 1;
                     renderOrderRows();
                 });
             } catch (Exception e) {
@@ -216,17 +226,67 @@ public class OrderListComponentController extends Controller {
         orderRowBox.getChildren().clear();
 
         if (displayedOrders.isEmpty()) {
+            if (numOrder != null) {
+                numOrder.setText("0 orders");
+            }
+            if (pagContainer != null) {
+                pagContainer.getChildren().clear();
+            }
             renderSampleOrderRows();
             return;
         }
 
+        int totalCount = displayedOrders.size();
         if (numOrder != null) {
-            numOrder.setText(displayedOrders.size() + " orders");
+            numOrder.setText(totalCount + " orders");
         }
 
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
+        if (pagContainer != null) {
+            if (paginationComponent == null) {
+                paginationComponent = new UIPagination(totalCount, pageSize, currentPage, page -> {
+                    this.currentPage = page;
+                    renderCurrentPageRows();
+                });
+            } else {
+                paginationComponent.setOnPageChange(page -> {
+                    this.currentPage = page;
+                    renderCurrentPageRows();
+                });
+                paginationComponent.update(totalCount, pageSize, currentPage);
+            }
+            pagContainer.getChildren().setAll(paginationComponent);
+        }
+
+        renderCurrentPageRows();
+    }
+
+    private void renderCurrentPageRows() {
+        if (orderRowBox == null) return;
+        orderRowBox.getChildren().clear();
+
+        if (orderScrollPane != null) {
+            orderScrollPane.setVvalue(0.0);
+        }
+
+        int fromIndex = (currentPage - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, displayedOrders.size());
+
+        if (fromIndex >= displayedOrders.size()) {
+            return;
+        }
+
+        List<Order> pageOrders = displayedOrders.subList(fromIndex, toIndex);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        for (Order o : displayedOrders) {
+        for (Order o : pageOrders) {
             String dateStr = o.getCreatedAt() != null ? o.getCreatedAt().format(formatter)
                     : (o.getStartDate() != null ? o.getStartDate().format(formatter) : "2026-11-01");
             int amount = o.getTotalPrice() != null ? o.getTotalPrice().intValue() : 250;
@@ -269,6 +329,7 @@ public class OrderListComponentController extends Controller {
     @FXML
     private void btnAllOrderClicked(MouseEvent event) {
         setFocusedButton(btnAllOrder);
+        currentPage = 1;
         displayedOrders = new ArrayList<>(allOrders);
         renderOrderRows();
     }
@@ -276,6 +337,7 @@ public class OrderListComponentController extends Controller {
     @FXML
     private void btnCompleteClicked(MouseEvent event) {
         setFocusedButton(btnComplete);
+        currentPage = 1;
         displayedOrders = allOrders.stream()
                 .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
                 .toList();
@@ -290,6 +352,7 @@ public class OrderListComponentController extends Controller {
     @FXML
     private void btnContinueClicked(MouseEvent event) {
         setFocusedButton(btnContinue);
+        currentPage = 1;
         displayedOrders = allOrders.stream()
                 .filter(o -> o.getStatus() == OrderStatus.ACTIVE || o.getStatus() == OrderStatus.CONFIRMED)
                 .toList();
@@ -299,6 +362,7 @@ public class OrderListComponentController extends Controller {
     @FXML
     private void btnCancelClicked(MouseEvent event) {
         setFocusedButton(btnCancel);
+        currentPage = 1;
         displayedOrders = allOrders.stream()
                 .filter(o -> o.getStatus() == OrderStatus.CANCELLED)
                 .toList();

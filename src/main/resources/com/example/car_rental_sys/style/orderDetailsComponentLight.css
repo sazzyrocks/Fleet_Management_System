@@ -11,6 +11,26 @@
     -fx-border-radius: 6px;
 }
 
+.btnCancelStyle {
+    -fx-background-color: #fff1f0;
+    -fx-border-color: #ffa39e;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-text-fill: #f53f3f !important;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btnCancelStyle:hover {
+    -fx-background-color: #ffccc7;
+    -fx-border-color: #ff4d4f;
+}
+
+.btnCancelStyle:disabled {
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+}
 
 .trackOrderPane{
     -fx-background-color: white;

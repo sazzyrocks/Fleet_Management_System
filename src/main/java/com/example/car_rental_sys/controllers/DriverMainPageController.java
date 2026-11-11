@@ -368,14 +368,22 @@ public class DriverMainPageController extends Controller {
     }
 
     public void showWorkplace() {
-        if (optionPane != null) optionPane.setVisible(false);
-        if (workplacePane != null) workplacePane.setVisible(true);
+        if (optionPane != null) {
+            optionPane.setVisible(false);
+        }
+        if (workplacePane != null) {
+            workplacePane.setVisible(true);
+            workplacePane.toFront();
+        }
     }
 
     public void showSettingsView(String fxmlName) {
-        if (workplacePane != null) workplacePane.setVisible(false);
+        if (workplacePane != null) {
+            workplacePane.setVisible(false);
+        }
         if (optionPane != null) {
             optionPane.setVisible(true);
+            optionPane.toFront();
             if (settingMainPanel != null) {
                 loadSubView(settingMainPanel, fxmlName);
             }

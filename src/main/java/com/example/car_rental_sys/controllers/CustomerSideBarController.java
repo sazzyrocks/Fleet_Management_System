@@ -23,6 +23,8 @@ import java.util.List;
  */
 public class CustomerSideBarController extends Controller {
 
+    public static CustomerSideBarController instance;
+
     @FXML
     private ImageView avatarImageView;
 
@@ -78,11 +80,12 @@ public class CustomerSideBarController extends Controller {
 
     @FXML
     public void initialize() {
+        instance = this;
         populateCustomerData();
         attachNavigationHandlers();
     }
 
-    private void populateCustomerData() {
+    public void populateCustomerData() {
         AuthService authService = ServiceFactory.getInstance().getAuthService();
         User currentUser = authService.getCurrentUser();
 
@@ -94,21 +97,82 @@ public class CustomerSideBarController extends Controller {
                 emailTextLabel.setText(currentUser.getEmail() != null ? currentUser.getEmail() : "customer@fleet.local");
             }
 
-            // Load order history count asynchronously
+            // Load order history count asynchronously and update VIP tier
             AsyncExecutor.getInstance().execute(() -> {
                 try {
                     OrderDAO orderDAO = DAOFactory.getInstance().getOrderDAO();
                     List<Order> userOrders = orderDAO.findByCustomerId(currentUser.getUserId());
-                    int count = userOrders.size();
+                    long validOrders = userOrders.stream()
+                            .filter(o -> o.getStatus() != com.example.car_rental_sys.model.OrderStatus.CANCELLED)
+                            .count();
+                    int count = (int) validOrders;
 
                     Platform.runLater(() -> {
                         if (orderNumLabel != null) {
                             orderNumLabel.setText(String.format("%02d", count));
                         }
+                        updateVipTier(count);
                     });
                 } catch (Exception ignored) {
                 }
             });
+        }
+    }
+
+    private void updateVipTier(int orderCount) {
+        int tier;
+        if (orderCount < 5) {
+            tier = 1;
+        } else if (orderCount < 10) {
+            tier = 2;
+        } else if (orderCount < 20) {
+            tier = 3;
+        } else if (orderCount < 35) {
+            tier = 4;
+        } else {
+            tier = 5;
+        }
+
+        String cardPath = switch (tier) {
+            case 1 -> "/com/example/car_rental_sys/image/UI/vip1card.png";
+            case 2 -> "/com/example/car_rental_sys/image/UI/vip2card.png";
+            case 3 -> "/com/example/car_rental_sys/image/UI/vip3card.png";
+            case 4 -> "/com/example/car_rental_sys/image/UI/vip4card.png";
+            default -> "/com/example/car_rental_sys/image/UI/svipcard.png";
+        };
+
+        String badgePath = switch (tier) {
+            case 1 -> "/com/example/car_rental_sys/image/UI/vip1.png";
+            case 2 -> "/com/example/car_rental_sys/image/UI/vip2.png";
+            case 3 -> "/com/example/car_rental_sys/image/UI/vip3.png";
+            case 4 -> "/com/example/car_rental_sys/image/UI/vip4.png";
+            default -> "/com/example/car_rental_sys/image/UI/svip.png";
+        };
+
+        try {
+            if (vipCardImageView != null) {
+                java.io.InputStream cStream = getClass().getResourceAsStream(cardPath);
+                if (cStream != null) {
+                    vipCardImageView.setImage(new javafx.scene.image.Image(cStream));
+                }
+            }
+            if (vipBadgeImageView != null) {
+                java.io.InputStream bStream = getClass().getResourceAsStream(badgePath);
+                if (bStream != null) {
+                    vipBadgeImageView.setImage(new javafx.scene.image.Image(bStream));
+                }
+            }
+        } catch (Exception ignored) {}
+
+        Pane[] bars = {bar1, bar2, bar3, bar4, bar5};
+        for (int i = 0; i < bars.length; i++) {
+            if (bars[i] != null) {
+                if (i < tier) {
+                    bars[i].setStyle("-fx-background-color: #fcdf7b; -fx-background-radius: 5;");
+                } else {
+                    bars[i].setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+                }
+            }
         }
     }
 

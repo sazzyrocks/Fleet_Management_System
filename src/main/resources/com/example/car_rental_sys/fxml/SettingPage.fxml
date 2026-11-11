@@ -6,6 +6,11 @@
 <?import javafx.scene.text.*?>
 
 <Pane fx:id="settingPane" prefHeight="700.0" prefWidth="820.0" style="-fx-background-color: transparent;" stylesheets="@../style/settingComponentLight.css" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.car_rental_sys.controllers.SettingPageController">
+   <Button fx:id="btnBackToMain" layoutX="57.0" layoutY="25.0" mnemonicParsing="false" onAction="#backToDashboardClicked" onMouseClicked="#backToDashboardClicked" prefHeight="34.0" prefWidth="180.0" style="-fx-background-color: #f2f3f5; -fx-background-radius: 6px; -fx-cursor: hand; -fx-text-fill: #165dff; -fx-font-weight: bold; -fx-font-size: 13px;" text="← Back to Workplace">
+      <font>
+         <Font name="System Bold" size="13.0" />
+      </font>
+   </Button>
    <Pane fx:id="switchPaneOne" layoutX="70.0" layoutY="87.0" prefHeight="16.0" prefWidth="30.0" />
    <Label layoutX="57.0" layoutY="115.0" styleClass="lblSecSettingText" text="Allow others to search yourself." textFill="#86909c">
       <font>

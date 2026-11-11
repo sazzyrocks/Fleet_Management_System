@@ -65,7 +65,7 @@
     <Line id="lineStatus" endX="1.0" endY="145.0" layoutX="65.0" layoutY="165.0" startX="1.0"/>
     <Pane layoutX="39.0" layoutY="150.0" prefHeight="170.0" prefWidth="220.0"
           style="-fx-background-color: transparent;">
-        <fx:include source="trackingStatusComponent.fxml"/>
+        <fx:include fx:id="trackingStatus" source="trackingStatusComponent.fxml"/>
     </Pane>
     <ImageView fx:id="locationIcon" fitHeight="24.0" fitWidth="18.0" layoutX="295.0" layoutY="548.0" pickOnBounds="true"
                preserveRatio="true" rotate="270.0">

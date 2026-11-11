@@ -7,7 +7,12 @@
 <Pane fx:id="userMiddleBar" prefHeight="700.0" prefWidth="200.0" stylesheets="@../style/middleBarLight.css"
       xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.car_rental_sys.controllers.InfoMiddleBarController">
-   <Label id="lblInformation" layoutX="29.0" layoutY="35.0" text="Profile" textFill="#1d2129">
+   <Button fx:id="btnBackToMain" layoutX="24.0" layoutY="14.0" mnemonicParsing="false" onAction="#btnBackToMainClicked" onMouseClicked="#btnBackToMainClicked" prefHeight="24.0" prefWidth="120.0" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #165dff; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; -fx-padding: 0;" text="← Back">
+      <font>
+         <Font name="System Bold" size="13.0"/>
+      </font>
+   </Button>
+   <Label id="lblInformation" layoutX="24.0" layoutY="45.0" text="Profile" textFill="#1d2129">
       <font>
          <Font name="Arial Bold" size="28.0"/>
       </font>

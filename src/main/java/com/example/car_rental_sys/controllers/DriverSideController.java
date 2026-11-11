@@ -43,6 +43,17 @@ public class DriverSideController extends Controller {
     private Label speed;
 
     @FXML
+    private Pane rowProfile;
+    @FXML
+    private Pane rowMessage;
+    @FXML
+    private Pane rowWorkplace;
+    @FXML
+    private Pane rowSetting;
+    @FXML
+    private Pane rowLogout;
+
+    @FXML
     private Pane item1; // Profile
 
     @FXML
@@ -127,10 +138,12 @@ public class DriverSideController extends Controller {
                 });
             }
         };
+        if (rowProfile != null) rowProfile.setOnMouseClicked(e -> openProfile.run());
         if (item1 != null) item1.setOnMouseClicked(e -> openProfile.run());
         if (imgIcon1 != null) imgIcon1.setOnMouseClicked(e -> openProfile.run());
 
         Runnable openMessage = () -> SceneManager.switchScene("messagePage.fxml");
+        if (rowMessage != null) rowMessage.setOnMouseClicked(e -> openMessage.run());
         if (item2 != null) item2.setOnMouseClicked(e -> openMessage.run());
         if (imgIcon2 != null) imgIcon2.setOnMouseClicked(e -> openMessage.run());
 
@@ -141,6 +154,7 @@ public class DriverSideController extends Controller {
                 SceneManager.switchScene("driverServicePage.fxml");
             }
         };
+        if (rowWorkplace != null) rowWorkplace.setOnMouseClicked(e -> openWorkplace.run());
         if (item3 != null) item3.setOnMouseClicked(e -> openWorkplace.run());
         if (imgIcon3 != null) imgIcon3.setOnMouseClicked(e -> openWorkplace.run());
 
@@ -156,9 +170,11 @@ public class DriverSideController extends Controller {
                 });
             }
         };
+        if (rowSetting != null) rowSetting.setOnMouseClicked(e -> openSetting.run());
         if (item4 != null) item4.setOnMouseClicked(e -> openSetting.run());
         if (imgIcon4 != null) imgIcon4.setOnMouseClicked(e -> openSetting.run());
 
+        if (rowLogout != null) rowLogout.setOnMouseClicked(e -> handleLogout());
         if (item5 != null) item5.setOnMouseClicked(e -> handleLogout());
         if (imgIcon5 != null) imgIcon5.setOnMouseClicked(e -> handleLogout());
     }

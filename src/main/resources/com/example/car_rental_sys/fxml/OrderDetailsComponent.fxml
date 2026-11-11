@@ -9,7 +9,7 @@
 <?import javafx.scene.text.*?>
 
 <Pane fx:id="panelOrderDetails" prefHeight="750.0" prefWidth="350.0" style="-fx-background-radius: 10;" stylesheets="@../style/orderDetailsComponentLight.css" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.car_rental_sys.controllers.OrderDetailsComponentController">
-    <Pane layoutX="25.0" layoutY="28.0" prefHeight="670.0" prefWidth="300.0">
+    <Pane layoutX="25.0" layoutY="28.0" prefHeight="715.0" prefWidth="300.0">
         <Label layoutY="16.0" styleClass="lblPrimaryText" text="Order ID:" textFill="#1d2129">
             <font>
                 <Font name="System Bold" size="24.0" />
@@ -20,6 +20,7 @@
                 <Font name="System Bold" size="24.0" />
             </font>
         </Label>
+        <Label fx:id="lblOrderStatusBadge" alignment="CENTER" layoutX="205.0" layoutY="-4.0" prefHeight="22.0" prefWidth="90.0" style="-fx-background-color: rgba(22, 93, 255, 0.2); -fx-text-fill: #165dff; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;" text="CONFIRMED" />
         <Label layoutY="60.0" styleClass="lblThirdText" text="Order date:" textFill="#86909c">
             <font>
                 <Font name="System Bold" size="16.0" />
@@ -193,5 +194,13 @@
         </ImageView>
         <ImageView fitHeight="20.0" fitWidth="20.0" layoutX="56.0" layoutY="277.0" pickOnBounds="true" preserveRatio="true" />
         <Label fx:id="lblLocation" alignment="TOP_LEFT" layoutX="167.0" layoutY="270.0" prefHeight="54.0" prefWidth="132.0" styleClass="lblSecondaryText" text="SRM University-AP, Amaravati" textFill="#4e5969" wrapText="true" />
+        <Button id="btnCancelRide" fx:id="btnCancelRide" layoutX="5.0" layoutY="672.0" mnemonicParsing="false" onMouseClicked="#btnCancelRideClicked" prefHeight="35.0" prefWidth="294.0" styleClass="btnCancelStyle" text="Cancel Ride">
+            <font>
+                <Font name="System Bold" size="13.0" />
+            </font>
+            <cursor>
+                <Cursor fx:constant="HAND" />
+            </cursor>
+        </Button>
     </Pane>
 </Pane>

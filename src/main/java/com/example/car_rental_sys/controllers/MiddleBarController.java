@@ -19,6 +19,9 @@ public class MiddleBarController {
     private Pane userMiddleBar;
 
     @FXML
+    private Button btnBackToMain;
+
+    @FXML
     private Button btnSysSetting;
 
     @FXML
@@ -38,6 +41,10 @@ public class MiddleBarController {
         instance = this;
         initButtonStyle();
         initTheme();
+        if (btnBackToMain != null) {
+            btnBackToMain.setOnAction(e -> handleBackNavigation());
+            btnBackToMain.setOnMouseClicked(e -> handleBackNavigation());
+        }
     }
 
     private void initButtonStyle() {
@@ -138,6 +145,42 @@ public class MiddleBarController {
                 btn.getStyleClass().remove("btnMiddleFocusStyle");
                 btn.getStyleClass().add("defaultMiddleBtnStyle");
             }
+        }
+    }
+
+    @FXML
+    private void btnBackToMainClicked(javafx.event.Event event) {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        Role role = currentUser != null ? currentUser.getRole() : null;
+
+        if (role == Role.DRIVER) {
+            if (DriverMainPageController.driverMainPageInstance != null 
+                    && DriverMainPageController.driverMainPageInstance.mainPane != null
+                    && DriverMainPageController.driverMainPageInstance.mainPane.getScene() != null) {
+                DriverMainPageController.driverMainPageInstance.showWorkplace();
+            } else {
+                com.example.car_rental_sys.util.SceneManager.switchScene("driverServicePage.fxml");
+            }
+            return;
+        }
+
+        if (role == Role.ADMIN) {
+            if (AdminServiceController.instance != null) {
+                AdminServiceController.instance.showDashboardPage();
+            } else {
+                com.example.car_rental_sys.util.SceneManager.switchScene("adminServicePage.fxml");
+            }
+            return;
+        }
+
+        if (CustomerServiceController.instance != null) {
+            CustomerServiceController.instance.showOrderPage();
+        } else {
+            com.example.car_rental_sys.util.SceneManager.switchScene("customerServicePage.fxml");
         }
     }
 }

@@ -1,13 +1,21 @@
 package com.example.car_rental_sys.controllers;
 
 import com.example.car_rental_sys.concurrency.AsyncExecutor;
+import com.example.car_rental_sys.dao.DAOFactory;
+import com.example.car_rental_sys.dao.OrderDAO;
+import com.example.car_rental_sys.dao.VehicleDAO;
 import com.example.car_rental_sys.model.Order;
+import com.example.car_rental_sys.model.OrderStatus;
 import com.example.car_rental_sys.model.Vehicle;
+import com.example.car_rental_sys.model.VehicleStatus;
 import com.example.car_rental_sys.service.ServiceFactory;
 import com.example.car_rental_sys.util.SceneManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -85,6 +93,12 @@ public class OrderDetailsComponentController extends Controller {
 
     @FXML
     private ImageView trackIcon;
+
+    @FXML
+    private Label lblOrderStatusBadge;
+
+    @FXML
+    private Button btnCancelRide;
 
     public static void setSelectedOrder(Order order) {
         selectedOrder = order;
@@ -173,6 +187,61 @@ public class OrderDetailsComponentController extends Controller {
             dueTime.setText(selectedOrder.getEndDate().format(dtf));
         }
 
+        OrderStatus status = selectedOrder.getStatus();
+        if (status == null) status = OrderStatus.CONFIRMED;
+
+        boolean isCustomer = (com.example.car_rental_sys.StatusContainer.currentUser == null
+                || com.example.car_rental_sys.StatusContainer.currentUser.getRole() == com.example.car_rental_sys.model.Role.CUSTOMER);
+
+        if (lblOrderStatusBadge != null) {
+            lblOrderStatusBadge.setText(status.name());
+            switch (status) {
+                case CANCELLED -> {
+                    lblOrderStatusBadge.setStyle(isCustomer
+                            ? "-fx-background-color: rgba(245, 63, 63, 0.25); -fx-text-fill: #f76560; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
+                            : "-fx-background-color: #ffece8; -fx-text-fill: #f53f3f; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                }
+                case COMPLETED -> {
+                    lblOrderStatusBadge.setStyle(isCustomer
+                            ? "-fx-background-color: rgba(0, 180, 42, 0.25); -fx-text-fill: #27c346; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
+                            : "-fx-background-color: #e8ffea; -fx-text-fill: #00b42a; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                }
+                case PENDING -> {
+                    lblOrderStatusBadge.setStyle(isCustomer
+                            ? "-fx-background-color: rgba(255, 125, 0, 0.25); -fx-text-fill: #ff9a2e; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
+                            : "-fx-background-color: #fff7e8; -fx-text-fill: #ff7d00; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                }
+                default -> {
+                    lblOrderStatusBadge.setStyle(isCustomer
+                            ? "-fx-background-color: rgba(22, 93, 255, 0.25); -fx-text-fill: #6aa1ff; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
+                            : "-fx-background-color: #e8f3ff; -fx-text-fill: #165dff; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                }
+            }
+        }
+
+        if (btnCancelRide != null) {
+            if (status == OrderStatus.CANCELLED) {
+                btnCancelRide.setDisable(true);
+                btnCancelRide.setText("Ride Cancelled");
+            } else if (status == OrderStatus.COMPLETED) {
+                btnCancelRide.setDisable(true);
+                btnCancelRide.setText("Ride Completed");
+            } else {
+                btnCancelRide.setDisable(false);
+                btnCancelRide.setText("Cancel Ride");
+            }
+        }
+
+        if (btnTrackOrder != null) {
+            if (status == OrderStatus.CANCELLED || status == OrderStatus.COMPLETED) {
+                btnTrackOrder.setDisable(true);
+                btnTrackOrder.setOpacity(0.5);
+            } else {
+                btnTrackOrder.setDisable(false);
+                btnTrackOrder.setOpacity(1.0);
+            }
+        }
+
         // Fetch vehicle details asynchronously
         AsyncExecutor.getInstance().execute(() -> {
             try {
@@ -212,6 +281,67 @@ public class OrderDetailsComponentController extends Controller {
             AdminServiceController.instance.showTrackOrder();
         } else {
             SceneManager.switchScene("customerServicePage.fxml");
+        }
+    }
+
+    @FXML
+    private void btnCancelRideClicked(MouseEvent event) {
+        if (selectedOrder == null) return;
+        OrderStatus status = selectedOrder.getStatus();
+        if (status == OrderStatus.CANCELLED || status == OrderStatus.COMPLETED) {
+            return;
+        }
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Cancel Ride Confirmation");
+        alert.setHeaderText("Cancel Booking for Order #" + String.format("%09d", selectedOrder.getOrderId()) + "?");
+        alert.setContentText("Are you sure you want to cancel this ride?\nThe vehicle will be released back to the fleet.");
+
+        ButtonType cancelRideBtn = new ButtonType("Yes, Cancel Ride", ButtonBar.ButtonData.OK_DONE);
+        ButtonType keepRideBtn = new ButtonType("Keep Booking", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(cancelRideBtn, keepRideBtn);
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == cancelRideBtn) {
+            int orderId = selectedOrder.getOrderId();
+            int vehicleId = selectedOrder.getVehicleId();
+
+            AsyncExecutor.getInstance().execute(() -> {
+                try {
+                    OrderDAO orderDAO = DAOFactory.getInstance().getOrderDAO();
+                    VehicleDAO vehicleDAO = DAOFactory.getInstance().getVehicleDAO();
+
+                    orderDAO.updateStatus(orderId, OrderStatus.CANCELLED);
+                    vehicleDAO.updateStatus(vehicleId, VehicleStatus.AVAILABLE);
+
+                    selectedOrder.setStatus(OrderStatus.CANCELLED);
+
+                    Platform.runLater(() -> {
+                        populateOrderData();
+
+                        if (OrderListComponentController.instance != null) {
+                            OrderListComponentController.instance.loadOrders();
+                        }
+                        if (CustomerSideBarController.instance != null) {
+                            CustomerSideBarController.instance.populateCustomerData();
+                        }
+
+                        Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                        successAlert.setTitle("Ride Cancelled");
+                        successAlert.setHeaderText(null);
+                        successAlert.setContentText("Your ride has been successfully cancelled.");
+                        successAlert.showAndWait();
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                        errorAlert.setTitle("Cancellation Failed");
+                        errorAlert.setHeaderText(null);
+                        errorAlert.setContentText("Could not cancel ride: " + e.getMessage());
+                        errorAlert.showAndWait();
+                    });
+                }
+            });
         }
     }
 

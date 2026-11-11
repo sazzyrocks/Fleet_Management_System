@@ -22,6 +22,9 @@ public class SettingPageController extends Controller {
     private Pane settingPane;
 
     @FXML
+    private javafx.scene.control.Button btnBackToMain;
+
+    @FXML
     private Pane switchPaneOne;
 
     @FXML
@@ -33,6 +36,7 @@ public class SettingPageController extends Controller {
     @FXML
     public void initialize() {
         initTheme();
+        initBackBtn();
 
         if (switchPaneOne != null) {
             switchPaneOne.getChildren().setAll(new SwitchButton(true));
@@ -45,6 +49,24 @@ public class SettingPageController extends Controller {
         }
     }
 
+    private void initBackBtn() {
+        if (btnBackToMain != null) {
+            User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+            if (currentUser != null && currentUser.getRole() == Role.DRIVER) {
+                btnBackToMain.setText("← Back to Workplace");
+            } else if (currentUser != null && currentUser.getRole() == Role.CUSTOMER) {
+                btnBackToMain.setText("← Back to Orders");
+            } else if (currentUser != null && currentUser.getRole() == Role.ADMIN) {
+                btnBackToMain.setText("← Back to Overview");
+            } else {
+                btnBackToMain.setText("← Back");
+            }
+
+            btnBackToMain.setOnAction(e -> handleBackNavigation());
+            btnBackToMain.setOnMouseClicked(e -> handleBackNavigation());
+        }
+    }
+
     private void initTheme() {
         User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
         if (currentUser != null && currentUser.getRole() == Role.CUSTOMER && settingPane != null) {
@@ -52,16 +74,44 @@ public class SettingPageController extends Controller {
             if (darkCss != null) {
                 settingPane.getStylesheets().add(darkCss.toExternalForm());
             }
+            if (btnBackToMain != null) {
+                btnBackToMain.setStyle("-fx-background-color: #2a2b2e; -fx-background-radius: 6px; -fx-cursor: hand; -fx-text-fill: #4080ff; -fx-font-weight: bold; -fx-font-size: 13px;");
+            }
         }
     }
 
     @FXML
-    private void backToDashboardClicked(MouseEvent event) {
+    private void backToDashboardClicked(javafx.event.Event event) {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
         User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
-        if (currentUser != null && currentUser.getRole() == Role.ADMIN) {
-            SceneManager.switchScene("adminServicePage.fxml");
-        } else if (currentUser != null && currentUser.getRole() == Role.DRIVER) {
-            SceneManager.switchScene("driverServicePage.fxml");
+        Role role = currentUser != null ? currentUser.getRole() : null;
+
+        if (role == Role.DRIVER) {
+            if (DriverMainPageController.driverMainPageInstance != null 
+                    && DriverMainPageController.driverMainPageInstance.mainPane != null
+                    && DriverMainPageController.driverMainPageInstance.mainPane.getScene() != null) {
+                DriverMainPageController.driverMainPageInstance.showWorkplace();
+            } else {
+                SceneManager.switchScene("driverServicePage.fxml");
+            }
+            return;
+        }
+
+        if (role == Role.ADMIN) {
+            if (AdminServiceController.instance != null) {
+                AdminServiceController.instance.showDashboardPage();
+            } else {
+                SceneManager.switchScene("adminServicePage.fxml");
+            }
+            return;
+        }
+
+        // Default: Customer
+        if (CustomerServiceController.instance != null) {
+            CustomerServiceController.instance.showOrderPage();
         } else {
             SceneManager.switchScene("customerServicePage.fxml");
         }

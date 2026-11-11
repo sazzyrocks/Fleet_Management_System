@@ -23,6 +23,27 @@
     -fx-cursor: hand;
 }
 
+.btnCancelStyle {
+    -fx-background-color: rgba(245, 63, 63, 0.12);
+    -fx-border-color: #f76560;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-text-fill: #f76560 !important;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btnCancelStyle:hover {
+    -fx-background-color: rgba(245, 63, 63, 0.28);
+    -fx-border-color: #ff7875;
+}
+
+.btnCancelStyle:disabled {
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+}
+
 .trackOrderPane{
     -fx-background-color: #111111;
     -fx-background-radius: 10px;
