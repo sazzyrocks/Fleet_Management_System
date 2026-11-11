@@ -57,6 +57,16 @@ public class OrderCard extends Pane {
         plateLabel.setFont(Font.font("System", 12));
         plateLabel.setStyle("-fx-text-fill: #86909c;");
 
+        // 2B. Optional [DEMO] badge if fallback data
+        Label demoBadge = null;
+        if (order.isDemo()) {
+            demoBadge = new Label("DEMO");
+            demoBadge.setLayoutX(100);
+            demoBadge.setLayoutY(34);
+            demoBadge.setFont(Font.font("System", FontWeight.BOLD, 9));
+            demoBadge.setStyle("-fx-background-color: rgba(255, 125, 0, 0.18); -fx-text-fill: #ff7d00; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        }
+
         // 3. Eye / Dismiss Button
         Pane hideBtn = createActionButton("/com/example/car_rental_sys/image/UI/hide.png", "#78909c", 172, 12);
         hideBtn.setOnMouseClicked(e -> {
@@ -116,7 +126,21 @@ public class OrderCard extends Pane {
         endDateLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
         endDateLabel.setStyle("-fx-text-fill: #1d2129;");
 
-        getChildren().addAll(modelLabel, plateLabel, hideBtn, chooseBtn, carThumbBox, startDateLabel, toLabel, endDateLabel);
+        // 7. Rental Mode Badge
+        Label modeBadge = new Label(order.isChauffeur() ? "CHAUFFEUR" : "SELF-DRIVE");
+        modeBadge.setLayoutX(146);
+        modeBadge.setLayoutY(48);
+        modeBadge.setFont(Font.font("System", FontWeight.BOLD, 9));
+        if (order.isChauffeur()) {
+            modeBadge.setStyle("-fx-background-color: rgba(114, 46, 209, 0.15); -fx-text-fill: #722ED1; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        } else {
+            modeBadge.setStyle("-fx-background-color: rgba(0, 180, 42, 0.15); -fx-text-fill: #00b42a; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        }
+
+        getChildren().addAll(modelLabel, plateLabel, hideBtn, chooseBtn, carThumbBox, modeBadge, startDateLabel, toLabel, endDateLabel);
+        if (demoBadge != null) {
+            getChildren().add(demoBadge);
+        }
 
         // Click on card selects this order
         setOnMouseClicked(e -> {

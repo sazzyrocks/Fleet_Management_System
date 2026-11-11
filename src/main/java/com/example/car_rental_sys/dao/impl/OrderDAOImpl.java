@@ -53,6 +53,19 @@ public class OrderDAOImpl implements OrderDAO {
         o.setTotalPrice(rs.getBigDecimal("total_price"));
         o.setStatus(OrderStatus.fromString(rs.getString("status")));
 
+        try {
+            String rmStr = rs.getString("rental_mode");
+            if (rmStr != null) {
+                o.setRentalMode(com.example.car_rental_sys.model.RentalMode.fromString(rmStr));
+            } else if (o.getDriverId() != null) {
+                o.setRentalMode(com.example.car_rental_sys.model.RentalMode.WITH_DRIVER);
+            }
+        } catch (SQLException ignored) {
+            if (o.getDriverId() != null) {
+                o.setRentalMode(com.example.car_rental_sys.model.RentalMode.WITH_DRIVER);
+            }
+        }
+
         Timestamp created = rs.getTimestamp("created_at");
         if (created != null) o.setCreatedAt(created.toLocalDateTime());
 

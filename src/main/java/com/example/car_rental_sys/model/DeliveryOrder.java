@@ -30,6 +30,8 @@ public class DeliveryOrder implements Serializable {
     private String lightColor;
     private String renterPhone;
     private OrderStatus status;
+    private RentalMode rentalMode = RentalMode.SELF_DRIVE;
+    private boolean isDemo = false;
 
     public DeliveryOrder() {
         this.status = OrderStatus.PENDING;
@@ -264,5 +266,25 @@ public class DeliveryOrder implements Serializable {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public RentalMode getRentalMode() {
+        return rentalMode != null ? rentalMode : RentalMode.SELF_DRIVE;
+    }
+
+    public void setRentalMode(RentalMode rentalMode) {
+        this.rentalMode = rentalMode;
+    }
+
+    public boolean isDemo() {
+        return isDemo;
+    }
+
+    public void setDemo(boolean demo) {
+        isDemo = demo;
+    }
+
+    public boolean isChauffeur() {
+        return getRentalMode() == RentalMode.WITH_DRIVER;
     }
 }

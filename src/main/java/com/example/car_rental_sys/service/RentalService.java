@@ -5,6 +5,7 @@ import com.example.car_rental_sys.dao.OrderDAO;
 import com.example.car_rental_sys.dao.VehicleDAO;
 import com.example.car_rental_sys.model.Order;
 import com.example.car_rental_sys.model.OrderStatus;
+import com.example.car_rental_sys.model.RentalMode;
 import com.example.car_rental_sys.model.Vehicle;
 import com.example.car_rental_sys.model.VehicleStatus;
 
@@ -50,6 +51,14 @@ public class RentalService {
     public Order bookRental(int customerId, int vehicleId, Integer driverId,
                            LocalDateTime startDate, LocalDateTime endDate,
                            String pickupLocation, String returnLocation) throws BookingConflictException {
+        return bookRental(customerId, vehicleId, driverId, startDate, endDate, pickupLocation, returnLocation,
+                driverId != null ? RentalMode.WITH_DRIVER : RentalMode.SELF_DRIVE);
+    }
+
+    public Order bookRental(int customerId, int vehicleId, Integer driverId,
+                           LocalDateTime startDate, LocalDateTime endDate,
+                           String pickupLocation, String returnLocation,
+                           RentalMode rentalMode) throws BookingConflictException {
         if (startDate == null || endDate == null) {
             throw new ServiceException("Start date and end date are required.");
         }
@@ -71,10 +80,13 @@ public class RentalService {
             throw new BookingConflictException("The selected vehicle is already reserved during this time range. Please choose alternative dates or another car.");
         }
 
-        // Calculate pricing
+        RentalMode mode = rentalMode != null ? rentalMode : (driverId != null ? RentalMode.WITH_DRIVER : RentalMode.SELF_DRIVE);
+
+        // Calculate pricing (daily rate + optional chauffeur fee)
         long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
         BigDecimal dailyRate = vehicle.getDailyRate() != null ? vehicle.getDailyRate() : BigDecimal.ZERO;
-        BigDecimal totalPrice = dailyRate.multiply(BigDecimal.valueOf(days));
+        BigDecimal dailyEffectiveRate = dailyRate.add(mode.getDailySurcharge());
+        BigDecimal totalPrice = dailyEffectiveRate.multiply(BigDecimal.valueOf(days));
 
         // Generate tracking order number (e.g. ORD-20261031-AB12)
         String datePrefix = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -92,6 +104,7 @@ public class RentalService {
         order.setReturnLocation(returnLocation != null ? returnLocation : "Main Fleet Hub");
         order.setTotalPrice(totalPrice);
         order.setStatus(OrderStatus.PENDING);
+        order.setRentalMode(mode);
 
         return orderDAO.save(order);
     }
@@ -115,9 +128,33 @@ public class RentalService {
     public Order createReservation(Integer customerId, Integer vehicleId,
                                    LocalDateTime startDate, LocalDateTime endDate,
                                    String pickupLocation, String returnLocation) {
+        return createReservation(customerId, vehicleId, startDate, endDate, pickupLocation, returnLocation, RentalMode.SELF_DRIVE);
+    }
+
+    public Order createReservation(Integer customerId, Integer vehicleId,
+                                   LocalDateTime startDate, LocalDateTime endDate,
+                                   String pickupLocation, String returnLocation,
+                                   RentalMode rentalMode) {
         int custId = customerId != null ? customerId : 1;
         int vehId = vehicleId != null ? vehicleId : 1;
-        return bookRental(custId, vehId, null, startDate, endDate, pickupLocation, returnLocation);
+        return bookRental(custId, vehId, null, startDate, endDate, pickupLocation, returnLocation, rentalMode);
+    }
+
+    /**
+     * Handover vehicle to customer in Self-Drive mode upon arrival.
+     * Transitions ACTIVE -> ON_RENT.
+     */
+    public boolean handoverVehicle(Integer orderId) {
+        if (orderId == null) return false;
+        return updateOrderStatus(orderId, OrderStatus.ON_RENT);
+    }
+
+    /**
+     * Customer returns the vehicle at the end of booking.
+     * Transitions ON_RENT -> COMPLETED and marks vehicle AVAILABLE.
+     */
+    public boolean returnVehicle(Integer orderId) {
+        return completeBooking(orderId);
     }
 
     public boolean confirmBooking(Integer orderId) {

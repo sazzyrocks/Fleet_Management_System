@@ -318,7 +318,11 @@ public class DriverMainPageController extends Controller {
             processTipPane.toFront();
         }
         if (processTipLabel != null) {
-            processTipLabel.setText("Trip in progress: Heading to Pickup");
+            if (order.isChauffeur()) {
+                processTipLabel.setText("Chauffeur in service: Private driver assigned");
+            } else {
+                processTipLabel.setText("Trip in progress: Heading to deliver vehicle to client");
+            }
         }
 
         updateSidebarInfo(order);
@@ -328,8 +332,22 @@ public class DriverMainPageController extends Controller {
     }
 
     private void updateSidebarInfo(DeliveryOrder order) {
-        if (renterName != null) renterName.setText(order.getRenterName());
-        if (renterPost != null) renterPost.setText(order.getRenterRole());
+        if (renterName != null) {
+            String nameText = order.getRenterName();
+            if (order.isDemo()) {
+                nameText = "[DEMO] " + nameText;
+            }
+            renterName.setText(nameText);
+        }
+        if (renterPost != null) {
+            String roleText = order.getRenterRole();
+            if (order.isChauffeur()) {
+                roleText += " • Chauffeur Assignment";
+            } else {
+                roleText += " • Self-Drive Delivery";
+            }
+            renterPost.setText(roleText);
+        }
         if (carNumberLabel != null) carNumberLabel.setText(order.getCarNumber());
         if (seatsLabel != null) seatsLabel.setText(order.getSeats());
         if (powerLabel != null) powerLabel.setText(order.getEngine());

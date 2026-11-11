@@ -232,7 +232,10 @@ public class OrderListComponentController extends Controller {
             if (pagContainer != null) {
                 pagContainer.getChildren().clear();
             }
-            renderSampleOrderRows();
+            Label emptyLbl = new Label("No rental bookings found. Rent a car to begin!");
+            boolean isCustomer = (StatusContainer.currentUser == null || StatusContainer.currentUser.getRole() == Role.CUSTOMER);
+            emptyLbl.setStyle("-fx-text-fill: " + (isCustomer ? "#86909c" : "#86909c") + "; -fx-font-size: 13px; -fx-padding: 40 0 0 20;");
+            orderRowBox.getChildren().add(emptyLbl);
             return;
         }
 
@@ -305,12 +308,12 @@ public class OrderListComponentController extends Controller {
         orderRowBox.getChildren().clear();
 
         if (numOrder != null) {
-            numOrder.setText("3 orders");
+            numOrder.setText("3 demo orders");
         }
 
-        UIOrderRow r1 = new UIOrderRow(3, "Vehicle #1", "2026-11-02", 700, 1);
-        UIOrderRow r2 = new UIOrderRow(2, "Vehicle #1", "2026-11-01", 700, 5);
-        UIOrderRow r3 = new UIOrderRow(1, "Vehicle #2", "2026-11-01", 240, 5);
+        UIOrderRow r1 = new UIOrderRow(3, "[DEMO] Porsche 718", "2026-11-02", 700, 1);
+        UIOrderRow r2 = new UIOrderRow(2, "[DEMO] Ferrari SF90", "2026-11-01", 700, 5);
+        UIOrderRow r3 = new UIOrderRow(1, "[DEMO] Corvette ZR1", "2026-11-01", 240, 5);
 
         orderRowBox.getChildren().addAll(r1, r2, r3);
     }
@@ -322,6 +325,7 @@ public class OrderListComponentController extends Controller {
             case PENDING -> 0;
             case CONFIRMED -> 1;
             case ACTIVE -> 3;
+            case ON_RENT -> 4;
             case COMPLETED -> 5;
         };
     }
@@ -354,7 +358,7 @@ public class OrderListComponentController extends Controller {
         setFocusedButton(btnContinue);
         currentPage = 1;
         displayedOrders = allOrders.stream()
-                .filter(o -> o.getStatus() == OrderStatus.ACTIVE || o.getStatus() == OrderStatus.CONFIRMED)
+                .filter(o -> o.getStatus() == OrderStatus.ACTIVE || o.getStatus() == OrderStatus.CONFIRMED || o.getStatus() == OrderStatus.ON_RENT)
                 .toList();
         renderOrderRows();
     }

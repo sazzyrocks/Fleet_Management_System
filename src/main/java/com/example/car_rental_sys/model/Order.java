@@ -27,6 +27,7 @@ public class Order implements Serializable {
     private String returnLocation;
     private BigDecimal totalPrice;
     private OrderStatus status;
+    private RentalMode rentalMode = RentalMode.SELF_DRIVE;
     private LocalDateTime createdAt;
 
     public Order() {
@@ -156,6 +157,14 @@ public class Order implements Serializable {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public RentalMode getRentalMode() {
+        return rentalMode != null ? rentalMode : RentalMode.SELF_DRIVE;
+    }
+
+    public void setRentalMode(RentalMode rentalMode) {
+        this.rentalMode = rentalMode;
     }
 
     public LocalDateTime getCreatedAt() {

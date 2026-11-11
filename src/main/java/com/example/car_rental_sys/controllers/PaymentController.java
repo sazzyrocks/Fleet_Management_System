@@ -12,7 +12,7 @@ import com.example.car_rental_sys.model.Order;
 import com.example.car_rental_sys.model.Payment;
 
 import com.example.car_rental_sys.model.PaymentStatus;
-
+import com.example.car_rental_sys.model.RentalMode;
 import com.example.car_rental_sys.model.User;
 
 import com.example.car_rental_sys.model.Vehicle;
@@ -206,13 +206,23 @@ public class PaymentController extends Controller {
 
 
     @FXML
-
     private ScrollPane bankCardsContainer;
 
+    @FXML
+    private Pane selfDriveCard;
+    @FXML
+    private Pane withDriverCard;
+    @FXML
+    private Label selfDriveTitle;
+    @FXML
+    private Label withDriverTitle;
+    @FXML
+    private Label summaryRentalMode;
+    @FXML
+    private Label chauffeurFee;
 
-
+    private RentalMode selectedRentalMode = RentalMode.SELF_DRIVE;
     private Vehicle currentVehicle;
-
     private BigDecimal calculatedTotal;
 
 
@@ -246,9 +256,8 @@ public class PaymentController extends Controller {
 
 
         setupPaymentMethod();
-
         populateCustomerData();
-
+        updateRentalModeUI();
         populatePricingSummary();
 
         if (bankCardsContainer != null) {
@@ -312,57 +321,45 @@ public class PaymentController extends Controller {
 
 
         BigDecimal dailyRate = (currentVehicle != null && currentVehicle.getDailyRate() != null)
-
                 ? currentVehicle.getDailyRate()
-
                 : new BigDecimal("350.00");
 
-
-
         String brand = currentVehicle != null ? currentVehicle.getBrand() : "Lamborghini";
-
         String model = currentVehicle != null ? currentVehicle.getModel() : "Huracan EVO";
 
-
-
         long pTs = com.example.car_rental_sys.StatusContainer.pickUpTimeStamp > 0
-
                 ? com.example.car_rental_sys.StatusContainer.pickUpTimeStamp
-
                 : System.currentTimeMillis() + 3600_000L;
-
         long rTs = com.example.car_rental_sys.StatusContainer.returnTimeStamp > pTs
-
                 ? com.example.car_rental_sys.StatusContainer.returnTimeStamp
-
                 : pTs + 48L * 3600_000L;
 
-
-
         long hoursDiff = Math.max(1, (rTs - pTs) / (1000 * 3600));
-
         long daysDiff = Math.max(1, (hoursDiff + 23) / 24);
 
+        BigDecimal chauffeurDailySurcharge = selectedRentalMode.getDailySurcharge();
+        BigDecimal totalChauffeurFee = chauffeurDailySurcharge.multiply(BigDecimal.valueOf(daysDiff));
 
+        if (summaryRentalMode != null) summaryRentalMode.setText(selectedRentalMode.getDisplayName());
+        if (chauffeurFee != null) {
+            if (selectedRentalMode == RentalMode.WITH_DRIVER) {
+                chauffeurFee.setText("+₹" + totalChauffeurFee.toPlainString());
+                chauffeurFee.setStyle("-fx-text-fill: #ff9a2e;");
+            } else {
+                chauffeurFee.setText("₹0.00 (Self-Drive)");
+                chauffeurFee.setStyle("-fx-text-fill: #838383;");
+            }
+        }
 
         if (modelText != null) modelText.setText(brand + " " + model);
-
         if (priceText != null) priceText.setText("₹" + dailyRate.toPlainString() + "/D");
-
         if (price != null) price.setText("₹" + dailyRate.divide(new BigDecimal("24"), 2, RoundingMode.HALF_UP) + "/H");
-
         if (duration != null) duration.setText(hoursDiff + " Hours (" + daysDiff + " Days)");
-
         if (discount != null) discount.setText("-₹20.00");
-
         if (tax != null) tax.setText("6%");
 
-
-
-        BigDecimal base = dailyRate.multiply(BigDecimal.valueOf(daysDiff));
-
+        BigDecimal base = dailyRate.multiply(BigDecimal.valueOf(daysDiff)).add(totalChauffeurFee);
         BigDecimal taxAmount = base.multiply(new BigDecimal("0.06"));
-
         calculatedTotal = base.add(taxAmount).subtract(new BigDecimal("20.00"));
 
         if (calculatedTotal.compareTo(BigDecimal.ZERO) < 0) {
@@ -396,6 +393,37 @@ public class PaymentController extends Controller {
     }
 
 
+
+    @FXML
+    private void selfDriveCardClicked(MouseEvent event) {
+        selectedRentalMode = RentalMode.SELF_DRIVE;
+        com.example.car_rental_sys.StatusContainer.selectedRentalMode = selectedRentalMode;
+        updateRentalModeUI();
+        populatePricingSummary();
+    }
+
+    @FXML
+    private void withDriverCardClicked(MouseEvent event) {
+        selectedRentalMode = RentalMode.WITH_DRIVER;
+        com.example.car_rental_sys.StatusContainer.selectedRentalMode = selectedRentalMode;
+        updateRentalModeUI();
+        populatePricingSummary();
+    }
+
+    private void updateRentalModeUI() {
+        if (selfDriveCard == null || withDriverCard == null) return;
+        if (selectedRentalMode == RentalMode.SELF_DRIVE) {
+            selfDriveCard.setStyle("-fx-background-color: #1a2234; -fx-background-radius: 12; -fx-border-color: #165DFF; -fx-border-radius: 12; -fx-border-width: 1.8; -fx-cursor: hand;");
+            withDriverCard.setStyle("-fx-background-color: #15141b; -fx-background-radius: 12; -fx-border-color: #2f2f2f; -fx-border-radius: 12; -fx-border-width: 1.2; -fx-cursor: hand;");
+            if (selfDriveTitle != null) selfDriveTitle.setTextFill(javafx.scene.paint.Color.WHITE);
+            if (withDriverTitle != null) withDriverTitle.setTextFill(javafx.scene.paint.Color.web("#bcbcbc"));
+        } else {
+            selfDriveCard.setStyle("-fx-background-color: #15141b; -fx-background-radius: 12; -fx-border-color: #2f2f2f; -fx-border-radius: 12; -fx-border-width: 1.2; -fx-cursor: hand;");
+            withDriverCard.setStyle("-fx-background-color: #2b1f3d; -fx-background-radius: 12; -fx-border-color: #722ED1; -fx-border-radius: 12; -fx-border-width: 1.8; -fx-cursor: hand;");
+            if (selfDriveTitle != null) selfDriveTitle.setTextFill(javafx.scene.paint.Color.web("#bcbcbc"));
+            if (withDriverTitle != null) withDriverTitle.setTextFill(javafx.scene.paint.Color.WHITE);
+        }
+    }
 
     @FXML
     private void makePaymentBtnClickEvent(ActionEvent event) {
@@ -443,6 +471,8 @@ public class PaymentController extends Controller {
         final User finalUser = user;
         final LocalDateTime finalStart = start;
         final LocalDateTime finalEnd = end;
+        final RentalMode finalRentalMode = selectedRentalMode;
+        com.example.car_rental_sys.StatusContainer.selectedRentalMode = finalRentalMode;
         final String pickupLoc = (com.example.car_rental_sys.StatusContainer.pickUpLocation != null && !com.example.car_rental_sys.StatusContainer.pickUpLocation.isBlank())
                 ? com.example.car_rental_sys.StatusContainer.pickUpLocation
                 : "Central Terminal";
@@ -467,7 +497,8 @@ public class PaymentController extends Controller {
                                 currentStart,
                                 currentEnd,
                                 pickupLoc,
-                                pickupLoc
+                                pickupLoc,
+                                finalRentalMode
                         );
                         break;
                     } catch (com.example.car_rental_sys.service.BookingConflictException bce) {
@@ -483,7 +514,8 @@ public class PaymentController extends Controller {
                             futureStart,
                             futureStart.plusDays(2),
                             pickupLoc,
-                            pickupLoc
+                            pickupLoc,
+                            finalRentalMode
                     );
                 }
 

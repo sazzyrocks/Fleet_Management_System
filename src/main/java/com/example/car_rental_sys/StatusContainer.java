@@ -36,6 +36,7 @@ public class StatusContainer {
     public static int currentOrderID = 1;
     public static int currentContinueOrderID = -1;
     public static com.example.car_rental_sys.model.DeliveryOrder activeDeliveryOrder = null;
+    public static com.example.car_rental_sys.model.RentalMode selectedRentalMode = com.example.car_rental_sys.model.RentalMode.SELF_DRIVE;
 
     public static String paginationUsage = "order";
     public static boolean ifInCommentPage = false;
