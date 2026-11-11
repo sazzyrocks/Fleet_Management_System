@@ -322,6 +322,7 @@ public class OrderListComponentController extends Controller {
             case PENDING -> 0;
             case CONFIRMED -> 1;
             case ACTIVE -> 3;
+            case ON_RENT -> 4;
             case COMPLETED -> 5;
         };
     }
@@ -354,7 +355,7 @@ public class OrderListComponentController extends Controller {
         setFocusedButton(btnContinue);
         currentPage = 1;
         displayedOrders = allOrders.stream()
-                .filter(o -> o.getStatus() == OrderStatus.ACTIVE || o.getStatus() == OrderStatus.CONFIRMED)
+                .filter(o -> o.getStatus() == OrderStatus.ACTIVE || o.getStatus() == OrderStatus.CONFIRMED || o.getStatus() == OrderStatus.ON_RENT)
                 .toList();
         renderOrderRows();
     }

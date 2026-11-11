@@ -7,6 +7,7 @@ public enum OrderStatus {
     PENDING,
     CONFIRMED,
     ACTIVE,
+    ON_RENT,
     COMPLETED,
     CANCELLED;
 
