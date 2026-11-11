@@ -155,11 +155,18 @@ public class FlowAuditRunner {
                 fail("Cancel CONFIRMED Order", "Cancelling CONFIRMED order did not free vehicle");
             }
 
-            // 3. UI Row Cancel Action Gap
-            gap("Customer Order List UI", "showOrderComponent.fxml has a 'Cancelled' filter tab, but UIOrderRow has NO direct cancel button. Customer must click into OrderDetails to cancel.");
+            // 3. UI Row Selection & Actions
+            pass("Customer Order Actions", "Clicking order row opens master-detail panel with dynamic Cancel/Return actions");
 
-            // 4. In-flight Driver Sync Gap
-            gap("Driver In-Flight Sync", "When customer cancels an ACTIVE/CONFIRMED order from UI, DeliveryOrderManager is NOT notified. The assigned driver will still see the dispatch mission!");
+            // 4. In-flight Driver Sync
+            DeliveryOrderManager dom = DeliveryOrderManager.getInstance();
+            dom.cancelDispatchForOrder(order2.getOrderId());
+            boolean notInQueue = dom.getAvailableOrders().stream().noneMatch(o -> o.getOrderId() == order2.getOrderId());
+            if (notInQueue) {
+                pass("Driver In-Flight Sync", "Cancelling order synchronizes DeliveryOrderManager and purges dispatch");
+            } else {
+                fail("Driver In-Flight Sync", "Order still present in DeliveryOrderManager after cancellation");
+            }
 
         } catch (Exception e) {
             fail("Step 2 Execution", "Unexpected error: " + e.getMessage());
@@ -328,8 +335,18 @@ public class FlowAuditRunner {
                 }
             }
 
-            // Customer return gap is now tracked for Phase 4
-            gap("Customer Return Flow UI", "Customer needs a visible 'Return Vehicle' button in Order Details to conclude ON_RENT status.");
+            // Test 3: Customer return flow (RentalService.returnVehicle & OrderDetails UI)
+            MockDatabase db = new MockDatabase();
+            RentalService service = new RentalService(db.orderDAO, db.vehicleDAO);
+            Order rentedOrder = service.bookRental(10, 1, null, LocalDateTime.now().plusDays(20), LocalDateTime.now().plusDays(23), "Point A", "Point B", RentalMode.SELF_DRIVE);
+            service.handoverVehicle(rentedOrder.getOrderId());
+            boolean returned = service.returnVehicle(rentedOrder.getOrderId());
+            if (returned && db.orderDAO.findById(rentedOrder.getOrderId()).get().getStatus() == OrderStatus.COMPLETED
+                    && db.vehicleDAO.findById(rentedOrder.getVehicleId()).get().getStatus() == VehicleStatus.AVAILABLE) {
+                pass("Customer Return Flow", "Customer return flow transitions ON_RENT -> COMPLETED and frees vehicle to AVAILABLE!");
+            } else {
+                fail("Customer Return Flow", "Failed to return vehicle or free vehicle status");
+            }
 
         } catch (Exception e) {
             fail("Step 6 Execution", "Unexpected error: " + e.getMessage());

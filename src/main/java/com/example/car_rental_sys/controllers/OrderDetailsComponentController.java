@@ -206,6 +206,11 @@ public class OrderDetailsComponentController extends Controller {
                             ? "-fx-background-color: rgba(0, 180, 42, 0.25); -fx-text-fill: #27c346; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
                             : "-fx-background-color: #e8ffea; -fx-text-fill: #00b42a; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
                 }
+                case ON_RENT -> {
+                    lblOrderStatusBadge.setStyle(isCustomer
+                            ? "-fx-background-color: rgba(20, 201, 201, 0.25); -fx-text-fill: #14C9C9; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
+                            : "-fx-background-color: #e8fffb; -fx-text-fill: #14C9C9; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;");
+                }
                 case PENDING -> {
                     lblOrderStatusBadge.setStyle(isCustomer
                             ? "-fx-background-color: rgba(255, 125, 0, 0.25); -fx-text-fill: #ff9a2e; -fx-background-radius: 12; -fx-font-weight: bold; -fx-font-size: 11px;"
@@ -223,12 +228,19 @@ public class OrderDetailsComponentController extends Controller {
             if (status == OrderStatus.CANCELLED) {
                 btnCancelRide.setDisable(true);
                 btnCancelRide.setText("Ride Cancelled");
+                btnCancelRide.setStyle("");
             } else if (status == OrderStatus.COMPLETED) {
                 btnCancelRide.setDisable(true);
                 btnCancelRide.setText("Ride Completed");
+                btnCancelRide.setStyle("");
+            } else if (status == OrderStatus.ON_RENT) {
+                btnCancelRide.setDisable(false);
+                btnCancelRide.setText("Return Vehicle");
+                btnCancelRide.setStyle("-fx-background-color: #00b42a; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand; -fx-font-weight: bold;");
             } else {
                 btnCancelRide.setDisable(false);
                 btnCancelRide.setText("Cancel Ride");
+                btnCancelRide.setStyle("");
             }
         }
 
@@ -292,6 +304,53 @@ public class OrderDetailsComponentController extends Controller {
             return;
         }
 
+        // Return Vehicle Action when ON_RENT
+        if (status == OrderStatus.ON_RENT) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Return Vehicle Confirmation");
+            alert.setHeaderText("Return Vehicle for Order #" + String.format("%09d", selectedOrder.getOrderId()) + "?");
+            alert.setContentText("Confirm returning the vehicle back to the fleet hub?\nThis concludes your rental.");
+
+            ButtonType returnBtn = new ButtonType("Confirm Return", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelBtn = new ButtonType("Keep Driving", ButtonBar.ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(returnBtn, cancelBtn);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == returnBtn) {
+                int orderId = selectedOrder.getOrderId();
+                AsyncExecutor.getInstance().execute(() -> {
+                    try {
+                        ServiceFactory.getInstance().getRentalService().returnVehicle(orderId);
+                        selectedOrder.setStatus(OrderStatus.COMPLETED);
+
+                        Platform.runLater(() -> {
+                            populateOrderData();
+                            if (OrderListComponentController.instance != null) {
+                                OrderListComponentController.instance.loadOrders();
+                            }
+                            if (CustomerSideBarController.instance != null) {
+                                CustomerSideBarController.instance.populateCustomerData();
+                            }
+                            Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                            successAlert.setTitle("Vehicle Returned");
+                            successAlert.setHeaderText(null);
+                            successAlert.setContentText("Thank you! The vehicle has been successfully returned and checked into the fleet.");
+                            successAlert.showAndWait();
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                            errorAlert.setTitle("Return Failed");
+                            errorAlert.setHeaderText(null);
+                            errorAlert.setContentText("Could not process vehicle return: " + e.getMessage());
+                            errorAlert.showAndWait();
+                        });
+                    }
+                });
+            }
+            return;
+        }
+
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Cancel Ride Confirmation");
         alert.setHeaderText("Cancel Booking for Order #" + String.format("%09d", selectedOrder.getOrderId()) + "?");
@@ -313,6 +372,9 @@ public class OrderDetailsComponentController extends Controller {
 
                     orderDAO.updateStatus(orderId, OrderStatus.CANCELLED);
                     vehicleDAO.updateStatus(vehicleId, VehicleStatus.AVAILABLE);
+
+                    // Notify & remove from DeliveryOrderManager in-flight driver queue
+                    com.example.car_rental_sys.service.DeliveryOrderManager.getInstance().cancelDispatchForOrder(orderId);
 
                     selectedOrder.setStatus(OrderStatus.CANCELLED);
 
