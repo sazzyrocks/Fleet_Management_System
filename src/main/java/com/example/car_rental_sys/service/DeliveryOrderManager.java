@@ -228,10 +228,12 @@ public class DeliveryOrderManager {
         availableOrders.removeIf(o -> o.getOrderId() == order.getOrderId());
         this.activeDispatchOrder = order;
 
-        // Sync status to database if order exists in DB
-        try {
-            DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), OrderStatus.ACTIVE);
-        } catch (Exception ignored) {}
+        // Sync status to database only for real orders (not demo mock orders)
+        if (!order.isDemo()) {
+            try {
+                DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), OrderStatus.ACTIVE);
+            } catch (Exception ignored) {}
+        }
     }
 
     public synchronized void completeActiveDelivery() {
@@ -242,17 +244,19 @@ public class DeliveryOrderManager {
                     : OrderStatus.COMPLETED;
 
             order.setStatus(nextStatus);
-            try {
-                DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), nextStatus);
-                // If it was with driver and now completed, release vehicle to AVAILABLE
-                if (nextStatus == OrderStatus.COMPLETED) {
-                    DAOFactory.getInstance().getOrderDAO().findById(order.getOrderId()).ifPresent(dbOrder -> {
-                        try {
-                            DAOFactory.getInstance().getVehicleDAO().updateStatus(dbOrder.getVehicleId(), VehicleStatus.AVAILABLE);
-                        } catch (Exception ignored) {}
-                    });
-                }
-            } catch (Exception ignored) {}
+            if (!order.isDemo()) {
+                try {
+                    DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), nextStatus);
+                    // If it was with driver and now completed, release vehicle to AVAILABLE
+                    if (nextStatus == OrderStatus.COMPLETED) {
+                        DAOFactory.getInstance().getOrderDAO().findById(order.getOrderId()).ifPresent(dbOrder -> {
+                            try {
+                                DAOFactory.getInstance().getVehicleDAO().updateStatus(dbOrder.getVehicleId(), VehicleStatus.AVAILABLE);
+                            } catch (Exception ignored) {}
+                        });
+                    }
+                } catch (Exception ignored) {}
+            }
             this.activeDispatchOrder = null;
         }
     }
