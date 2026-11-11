@@ -246,7 +246,7 @@ public class CustomerSideBarController extends Controller {
 
     @FXML
     public void rentCarClicked(MouseEvent event) {
-        SceneManager.switchScene("carsListPage.fxml");
+        SceneManager.switchScene("mainPage.fxml");
     }
 
     @FXML

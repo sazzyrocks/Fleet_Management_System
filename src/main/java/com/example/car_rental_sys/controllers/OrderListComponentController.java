@@ -160,7 +160,7 @@ public class OrderListComponentController extends Controller {
 
     @FXML
     private void rentCarClicked(MouseEvent event) {
-        com.example.car_rental_sys.util.SceneManager.switchScene("carsListPage.fxml");
+        com.example.car_rental_sys.util.SceneManager.switchScene("mainPage.fxml");
     }
 
     private void setupUIContainers() {
