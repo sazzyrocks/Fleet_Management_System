@@ -113,8 +113,8 @@ public class OrderDAOImpl implements OrderDAO {
     @Override
     public Order save(Order o) throws DAOException {
         String sql = "INSERT INTO orders (order_number, customer_id, vehicle_id, driver_id, " +
-                     "start_date, end_date, pickup_location, return_location, total_price, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "start_date, end_date, pickup_location, return_location, total_price, status, rental_mode) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, o.getOrderNumber());
@@ -131,6 +131,7 @@ public class OrderDAOImpl implements OrderDAO {
             stmt.setString(8, o.getReturnLocation());
             stmt.setBigDecimal(9, o.getTotalPrice() != null ? o.getTotalPrice() : BigDecimal.ZERO);
             stmt.setString(10, o.getStatus() != null ? o.getStatus().name() : OrderStatus.PENDING.name());
+            stmt.setString(11, o.getRentalMode() != null ? o.getRentalMode().name() : "SELF_DRIVE");
 
             stmt.executeUpdate();
             try (ResultSet gk = stmt.getGeneratedKeys()) {
@@ -148,7 +149,7 @@ public class OrderDAOImpl implements OrderDAO {
     public boolean update(Order o) throws DAOException {
         String sql = "UPDATE orders SET customer_id = ?, vehicle_id = ?, driver_id = ?, " +
                      "start_date = ?, end_date = ?, pickup_location = ?, return_location = ?, " +
-                     "total_price = ?, status = ? WHERE order_id = ?";
+                     "total_price = ?, status = ?, rental_mode = ? WHERE order_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, o.getCustomerId());
@@ -164,7 +165,8 @@ public class OrderDAOImpl implements OrderDAO {
             stmt.setString(7, o.getReturnLocation());
             stmt.setBigDecimal(8, o.getTotalPrice());
             stmt.setString(9, o.getStatus() != null ? o.getStatus().name() : OrderStatus.PENDING.name());
-            stmt.setInt(10, o.getOrderId());
+            stmt.setString(10, o.getRentalMode() != null ? o.getRentalMode().name() : "SELF_DRIVE");
+            stmt.setInt(11, o.getOrderId());
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {

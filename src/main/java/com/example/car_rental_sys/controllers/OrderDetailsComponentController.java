@@ -262,7 +262,7 @@ public class OrderDetailsComponentController extends Controller {
                     if (vOpt.isPresent()) {
                         Vehicle v = vOpt.get();
                         if (carName != null) carName.setText(v.getBrand() + " " + v.getModel());
-                        loadCarImage(carImg, v.getImagePath());
+                        loadCarImage(carImg, v.getImagePath(), v.getModel());
                     } else {
                         if (carName != null) carName.setText("Fleet Vehicle #" + selectedOrder.getVehicleId());
                     }
@@ -407,10 +407,13 @@ public class OrderDetailsComponentController extends Controller {
         }
     }
 
-    private void loadCarImage(ImageView imageView, String path) {
+    private void loadCarImage(ImageView imageView, String path, String model) {
         if (imageView == null) return;
-        try (InputStream stream = getClass().getResourceAsStream("/com/example/car_rental_sys/image/cars/Huracan_EVI.png")) {
-            if (stream != null) imageView.setImage(new Image(stream));
+        try {
+            Image img = com.example.car_rental_sys.ToolsLib.ImageTools.getCarImage(model, path);
+            if (img != null && !img.isError()) {
+                imageView.setImage(img);
+            }
         } catch (Exception ignored) {
         }
     }

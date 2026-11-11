@@ -1,5 +1,6 @@
 package com.example.car_rental_sys.service;
 
+import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.dao.DAOFactory;
 import com.example.car_rental_sys.model.DeliveryOrder;
 import com.example.car_rental_sys.model.Order;
@@ -244,6 +245,9 @@ public class DeliveryOrderManager {
                     : OrderStatus.COMPLETED;
 
             order.setStatus(nextStatus);
+            if (StatusContainer.currentOrder != null && StatusContainer.currentOrder.getOrderId() == order.getOrderId()) {
+                StatusContainer.currentOrder.setStatus(nextStatus);
+            }
             if (!order.isDemo()) {
                 try {
                     DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), nextStatus);
