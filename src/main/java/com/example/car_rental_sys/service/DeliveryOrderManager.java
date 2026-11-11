@@ -155,61 +155,61 @@ public class DeliveryOrderManager {
             var userDao = DAOFactory.getInstance().getUserDAO();
             var vehicleDao = DAOFactory.getInstance().getVehicleDAO();
 
-            List<Order> dbOrders = orderDao.findByStatus(OrderStatus.CONFIRMED);
-            if (dbOrders == null || dbOrders.isEmpty()) {
-                dbOrders = orderDao.findByStatus(OrderStatus.PENDING);
-            }
+            List<Order> dbOrders = new ArrayList<>();
+            List<Order> confirmed = orderDao.findByStatus(OrderStatus.CONFIRMED);
+            if (confirmed != null) dbOrders.addAll(confirmed);
+            List<Order> pending = orderDao.findByStatus(OrderStatus.PENDING);
+            if (pending != null) dbOrders.addAll(pending);
 
-            if (dbOrders != null) {
-                for (Order o : dbOrders) {
-                    if (activeDispatchOrder != null && activeDispatchOrder.getOrderId() == o.getOrderId()) {
-                        continue;
-                    }
-                    Optional<User> userOpt = userDao.findById(o.getCustomerId());
-                    Optional<Vehicle> vehicleOpt = vehicleDao.findById(o.getVehicleId());
-
-                    String rName = userOpt.map(User::getFullName).orElse("Valued Customer");
-                    String rPhone = userOpt.map(User::getPhone).orElse("+91 98765 00003");
-                    String cModel = vehicleOpt.map(v -> v.getModel().replace(" ", "_")).orElse("Porsche_718");
-                    String cPlate = vehicleOpt.map(Vehicle::getLicensePlate).orElse("AP 39 DL 1001");
-                    String seats = vehicleOpt.map(v -> v.getSeats() + " Seats").orElse("2 Seats");
-                    String power = "4.0 L Twin-Turbo";
-                    String speed = "320 km/h";
-
-                    DeliveryOrder dOrder = new DeliveryOrder(
-                            o.getOrderId(),
-                            o.getOrderNumber(),
-                            cModel,
-                            cPlate,
-                            rName,
-                            "VIP Client",
-                            "/com/example/car_rental_sys/image/avatar/1.png",
-                            seats,
-                            power,
-                            speed,
-                            o.getPickupLocation() != null ? o.getPickupLocation() : "SRM University-AP, Amaravati",
-                            16.4632, 80.5078,
-                            o.getReturnLocation() != null ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)",
-                            16.5175, 80.6200,
-                            o.getStartDate() != null ? o.getStartDate().toLocalDate().toString() : "2026-11-08",
-                            o.getEndDate() != null ? o.getEndDate().toLocalDate().toString() : "2026-11-15",
-                            "#0052d4", "#4364f7",
-                            rPhone
-                    );
-                    dOrder.setRentalMode(o.getRentalMode());
-                    dOrder.setDemo(false);
-                    result.add(dOrder);
+            for (Order o : dbOrders) {
+                if (activeDispatchOrder != null && activeDispatchOrder.getOrderId() == o.getOrderId()) {
+                    continue;
                 }
+                Optional<User> userOpt = userDao.findById(o.getCustomerId());
+                Optional<Vehicle> vehicleOpt = vehicleDao.findById(o.getVehicleId());
+
+                String rName = userOpt.map(User::getFullName).orElse("Valued Customer");
+                String rPhone = userOpt.map(User::getPhone).orElse("+91 98765 00003");
+                String cModel = vehicleOpt.map(v -> v.getModel().replace(" ", "_")).orElse("Porsche_718");
+                String cPlate = vehicleOpt.map(Vehicle::getLicensePlate).orElse("AP 39 DL 1001");
+                String seats = vehicleOpt.map(v -> v.getSeats() + " Seats").orElse("2 Seats");
+                String power = "4.0 L Twin-Turbo";
+                String speed = "320 km/h";
+
+                DeliveryOrder dOrder = new DeliveryOrder(
+                        o.getOrderId(),
+                        o.getOrderNumber(),
+                        cModel,
+                        cPlate,
+                        rName,
+                        "VIP Client",
+                        "/com/example/car_rental_sys/image/avatar/1.png",
+                        seats,
+                        power,
+                        speed,
+                        o.getPickupLocation() != null ? o.getPickupLocation() : "SRM University-AP, Amaravati",
+                        16.4632, 80.5078,
+                        o.getReturnLocation() != null ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)",
+                        16.5175, 80.6200,
+                        o.getStartDate() != null ? o.getStartDate().toLocalDate().toString() : "2026-11-08",
+                        o.getEndDate() != null ? o.getEndDate().toLocalDate().toString() : "2026-11-15",
+                        "#0052d4", "#4364f7",
+                        rPhone
+                );
+                dOrder.setRentalMode(o.getRentalMode());
+                dOrder.setDemo(false);
+                result.add(dOrder);
             }
         } catch (Exception ignored) {
             // Offline or table not populated yet; fallback to seeded list
         }
 
-        // 2. Add available seeded delivery fleet orders
-        for (DeliveryOrder o : availableOrders) {
-            boolean alreadyIn = result.stream().anyMatch(existing -> existing.getOrderId() == o.getOrderId());
-            if (!alreadyIn && (activeDispatchOrder == null || activeDispatchOrder.getOrderId() != o.getOrderId())) {
-                result.add(o);
+        // 2. Add seeded demo orders ONLY if no real customer orders exist, preventing useless mock data clutter
+        if (result.isEmpty()) {
+            for (DeliveryOrder o : availableOrders) {
+                if (activeDispatchOrder == null || activeDispatchOrder.getOrderId() != o.getOrderId()) {
+                    result.add(o);
+                }
             }
         }
 

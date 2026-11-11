@@ -271,7 +271,14 @@ public class DrivingModeController extends Controller {
 
     @FXML
     private void finishDeliveryClicked(MouseEvent event) {
-        MessageFrame messageFrame = new MessageFrame(MessageFrameType.CONFIRM, "Are you sure delivered this car?", "Confirm Notification");
+        DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
+        boolean isChauffeur = (activeOrder != null && activeOrder.isChauffeur());
+
+        String confirmMsg = isChauffeur
+                ? "Finish chauffeur duty? This concludes all rides for the client and marks the rental complete."
+                : "Handover vehicle to customer? This completes vehicle delivery and marks car on-rent.";
+
+        MessageFrame messageFrame = new MessageFrame(MessageFrameType.CONFIRM, confirmMsg, "Confirm Action");
         messageFrame.setSuccessCallbackFunc((i) -> {
             DeliveryOrderManager.getInstance().completeActiveDelivery();
             MusicPlayerController.stopPlayback();
