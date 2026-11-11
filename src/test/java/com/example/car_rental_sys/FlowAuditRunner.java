@@ -397,8 +397,21 @@ public class FlowAuditRunner {
             fail("Chauffeur Surcharge", "Error testing surcharge: " + e.getMessage());
         }
 
-        // 4. Check PaymentController for mode selection UI (will be tackled in Phase 2)
-        gap("Payment UI Mode Toggle", "paymentPage.fxml does NOT yet have interactive cards to toggle between Self-Drive and With-Driver.");
+        // 4. Check PaymentController for mode selection UI (Phase 2 complete)
+        try {
+            boolean hasSelfDrive = Arrays.stream(com.example.car_rental_sys.controllers.PaymentController.class.getDeclaredMethods())
+                    .anyMatch(m -> m.getName().equals("selfDriveCardClicked"));
+            boolean hasWithDriver = Arrays.stream(com.example.car_rental_sys.controllers.PaymentController.class.getDeclaredMethods())
+                    .anyMatch(m -> m.getName().equals("withDriverCardClicked"));
+
+            if (hasSelfDrive && hasWithDriver) {
+                pass("Payment UI Mode Toggle", "paymentPage.fxml & PaymentController have interactive Self-Drive & With-Driver toggle cards!");
+            } else {
+                fail("Payment UI Mode Toggle", "Missing selfDriveCardClicked or withDriverCardClicked methods");
+            }
+        } catch (Exception e) {
+            fail("Payment UI Mode Toggle", "Error inspecting PaymentController: " + e.getMessage());
+        }
 
         // 5. Driver UI Mission Mode (will be tackled in Phase 3)
         gap("Driver UI Chauffeur Badge", "DriverMainPageController and DrivingModeController have no distinction between 'Deliver Car to Customer' vs 'Chauffeur Ride in Progress'.");
