@@ -3,6 +3,8 @@ package com.example.car_rental_sys.controllers;
 import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.concurrency.AsyncExecutor;
 import com.example.car_rental_sys.dao.DAOFactory;
+import com.example.car_rental_sys.model.BankCard;
+import com.example.car_rental_sys.model.Order;
 import com.example.car_rental_sys.model.Payment;
 import com.example.car_rental_sys.model.PaymentStatus;
 import com.example.car_rental_sys.model.User;
@@ -14,6 +16,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
@@ -23,6 +26,8 @@ import javafx.scene.layout.VBox;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Controller for Customer Billing Overview, Wallet, and Payment Transactions.
@@ -68,26 +73,55 @@ public class BillingComponentController extends Controller {
         loadBillingData();
     }
 
-    private void setupCards() {
-        FlowPane cardPane = new FlowPane();
-        cardPane.setHgap(20);
-        cardPane.setVgap(15);
-        cardPane.setPadding(new Insets(10, 15, 10, 15));
-        cardPane.setStyle("-fx-background-color: transparent;");
+    public void setupCards() {
+        User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (user == null) user = StatusContainer.currentUser;
+        if (user == null) return;
 
-        // Authentic Visa, Mastercard, TnG Wallet, and New Card
-        PaymentCard visa = new PaymentCard("visa", "4000123456789010", "Alex Johnson", "Maybank", "2450");
-        PaymentCard master = new PaymentCard("mastercard", "5412751234123456", "Alex Johnson", "CIMB Bank", "1800");
-        PaymentCard tng = new PaymentCard("tng", "0123456789", "Alex Johnson", "Touch 'n Go", "450");
-        PaymentCard addNew = new PaymentCard("addNewCard");
+        final User currentUser = user;
+        AsyncExecutor.getInstance().execute(() -> {
+            try {
+                ServiceFactory.getInstance().getPaymentService().ensureDefaultCardForUser(currentUser);
+                List<BankCard> cards = DAOFactory.getInstance().getBankCardDAO().findByUserId(currentUser.getUserId());
 
-        cardPane.getChildren().addAll(visa, master, tng, addNew);
+                Platform.runLater(() -> {
+                    FlowPane cardPane = new FlowPane();
+                    cardPane.setHgap(20);
+                    cardPane.setVgap(15);
+                    cardPane.setPadding(new Insets(10, 15, 10, 15));
+                    cardPane.setStyle("-fx-background-color: transparent;");
 
-        if (billCardList != null) {
-            billCardList.setContent(cardPane);
-            billCardList.setFitToHeight(true);
-            billCardList.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
-        }
+                    String name = currentUser.getFullName() != null && !currentUser.getFullName().isBlank() 
+                            ? currentUser.getFullName() : currentUser.getUsername();
+
+                    for (BankCard card : cards) {
+                        String type = card.getCardType() != null ? card.getCardType().toLowerCase() : "mastercard";
+                        String balance = card.getBalance() != null ? card.getBalance().toPlainString() : "50000";
+                        String bank = "HDFC Bank";
+                        if (type.contains("visa")) bank = "State Bank of India";
+                        else if (type.contains("paypal")) bank = "PayPal Digital";
+                        else if (type.contains("tng")) bank = "Touch 'n Go";
+
+                        PaymentCard pc = new PaymentCard(type, card.getCardNumber(), name, bank, balance);
+                        cardPane.getChildren().add(pc);
+                    }
+
+                    PaymentCard addNew = new PaymentCard("addNewCard");
+                    cardPane.getChildren().add(addNew);
+
+                    if (billCardList != null) {
+                        billCardList.setContent(cardPane);
+                        billCardList.setFitToHeight(true);
+                        billCardList.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
+                    }
+
+                    if (showCardDetailsController.instance != null) {
+                        showCardDetailsController.instance.loadCardDetails();
+                    }
+                });
+            } catch (Exception ignored) {
+            }
+        });
     }
 
     private void setupTable() {
@@ -108,16 +142,29 @@ public class BillingComponentController extends Controller {
         AsyncExecutor.getInstance().execute(() -> {
             try {
                 User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
-                int customerId = (user != null) ? user.getUserId() : 1;
+                if (user == null) user = StatusContainer.currentUser;
+                final int customerId = (user != null) ? user.getUserId() : 1;
 
-                List<Payment> payments = DAOFactory.getInstance().getPaymentDAO().findAll();
+                List<Order> customerOrders = DAOFactory.getInstance().getOrderDAO().findByCustomerId(customerId);
+                Set<Integer> customerOrderIds = customerOrders.stream()
+                        .map(Order::getOrderId)
+                        .collect(Collectors.toSet());
+
+                List<Payment> payments = DAOFactory.getInstance().getPaymentDAO().findAll().stream()
+                        .filter(p -> p.getOrderId() != null && customerOrderIds.contains(p.getOrderId()))
+                        .toList();
+
                 Platform.runLater(() -> {
                     allPayments = payments;
                     displayedPayments = new ArrayList<>(payments);
                     renderBillRows();
                 });
             } catch (Exception e) {
-                Platform.runLater(this::renderSampleBills);
+                Platform.runLater(() -> {
+                    allPayments = new ArrayList<>();
+                    displayedPayments = new ArrayList<>();
+                    renderBillRows();
+                });
             }
         });
     }
@@ -127,7 +174,9 @@ public class BillingComponentController extends Controller {
         billTableBox.getChildren().clear();
 
         if (displayedPayments.isEmpty()) {
-            renderSampleBills();
+            Label emptyLbl = new Label("No recent transaction records found.");
+            emptyLbl.setStyle("-fx-text-fill: #86909c; -fx-font-size: 13px; -fx-padding: 20 0 0 10;");
+            billTableBox.getChildren().add(emptyLbl);
             return;
         }
 
@@ -143,18 +192,6 @@ public class BillingComponentController extends Controller {
             UICusBillRow row = new UICusBillRow("rental", dateStr, timeStr, amount, status);
             billTableBox.getChildren().add(row);
         }
-    }
-
-    private void renderSampleBills() {
-        if (billTableBox == null) return;
-        billTableBox.getChildren().clear();
-
-        UICusBillRow r1 = new UICusBillRow("rental", "2026-11-02", "14:20:00", 700, 5);
-        UICusBillRow r2 = new UICusBillRow("top-up", "2026-11-01", "09:15:00", 1000, 5);
-        UICusBillRow r3 = new UICusBillRow("rental", "2026-10-28", "16:45:00", 240, 5);
-        UICusBillRow r4 = new UICusBillRow("rental", "2026-10-15", "11:10:00", 850, 5);
-
-        billTableBox.getChildren().addAll(r1, r2, r3, r4);
     }
 
     @FXML

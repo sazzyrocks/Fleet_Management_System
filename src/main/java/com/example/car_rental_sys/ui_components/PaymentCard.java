@@ -126,7 +126,11 @@ public class PaymentCard extends Pane {
         if (wImg != null) wirelessIcon.setImage(wImg);
 
         this.getChildren().addAll(imageView, numLbl, bNameLbl, wirelessIcon);
-        this.setStyle("-fx-background-color: linear-gradient(to bottom,#200303,#B80000); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #C9CDD4; -fx-border-width: 1px;");
+        if ("visa".equalsIgnoreCase(type)) {
+            this.setStyle("-fx-background-color: linear-gradient(to bottom, #0f172a, #1e3a8a); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #3b82f6; -fx-border-width: 1px;");
+        } else {
+            this.setStyle("-fx-background-color: linear-gradient(to bottom, #18181b, #450a0a); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #f59e0b; -fx-border-width: 1px;");
+        }
     }
 
     private void initAddNewCard() {
@@ -138,12 +142,12 @@ public class PaymentCard extends Pane {
         Image addImg = ImageTools.getImageObjFromPath("/com/example/car_rental_sys/image/UI/addNewCard.png");
         if (addImg != null) addNewCard.setImage(addImg);
 
-        Label newCard = new Label("New Card");
-        newCard.setStyle("-fx-text-fill: #000000; -fx-font-size: 14px; -fx-font-family: Arial;");
-        newCard.setLayoutX(47);
+        Label newCard = new Label("+ New Card");
+        newCard.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 13px; -fx-font-weight: bold;");
+        newCard.setLayoutX(43);
         newCard.setLayoutY(61);
 
-        this.setStyle("-fx-background-color: #ffffff; -fx-border-color: #C9CDD4; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-cursor: hand;");
+        this.setStyle("-fx-background-color: #1e293b; -fx-border-color: #334155; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-cursor: hand;");
         this.getChildren().addAll(addNewCard, newCard);
     }
 
@@ -153,11 +157,11 @@ public class PaymentCard extends Pane {
 
         this.setOnMouseClicked(event -> {
             if ("addNewCard".equalsIgnoreCase(cardType)) {
-                FXTools.changeScene("addBankCardPage.fxml");
+                com.example.car_rental_sys.util.SceneManager.switchScene("addBankCardPage.fxml");
             } else {
                 StatusContainer.currentChooseBankCardNum = this.cardNumber;
                 if (showCardDetailsController.instance != null) {
-                    Platform.runLater(() -> showCardDetailsController.instance.initText());
+                    Platform.runLater(() -> showCardDetailsController.instance.loadCardDetails());
                 }
             }
         });

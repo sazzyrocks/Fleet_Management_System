@@ -1,5 +1,6 @@
 package com.example.car_rental_sys.controllers;
 
+import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.concurrency.AsyncExecutor;
 import com.example.car_rental_sys.dao.BankCardDAO;
 import com.example.car_rental_sys.dao.DAOFactory;
@@ -76,16 +77,38 @@ public class showCardDetailsController extends Controller {
         loadCardDetails();
     }
 
-    private void loadCardDetails() {
+    public void loadCardDetails() {
         User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (user == null) user = StatusContainer.currentUser;
         if (user == null) return;
 
+        final User currentUser = user;
         AsyncExecutor.getInstance().execute(() -> {
             try {
+                ServiceFactory.getInstance().getPaymentService().ensureDefaultCardForUser(currentUser);
                 BankCardDAO cardDAO = DAOFactory.getInstance().getBankCardDAO();
-                List<BankCard> cards = cardDAO.findByUserId(user.getUserId());
+                List<BankCard> cards = cardDAO.findByUserId(currentUser.getUserId());
                 if (!cards.isEmpty()) {
-                    activeCard = cards.get(0);
+                    String selectedNum = StatusContainer.currentChooseBankCardNum;
+                    BankCard chosen = null;
+                    if (selectedNum != null) {
+                        for (BankCard c : cards) {
+                            if (selectedNum.equals(c.getCardNumber()) || (c.getCardNumber() != null && c.getCardNumber().endsWith(selectedNum))) {
+                                chosen = c;
+                                break;
+                            }
+                        }
+                    }
+                    if (chosen == null) {
+                        chosen = cards.stream()
+                                .filter(c -> Boolean.TRUE.equals(c.getIsDefault()))
+                                .findFirst()
+                                .orElse(cards.get(0));
+                    }
+                    activeCard = chosen;
+                    Platform.runLater(this::renderActiveCard);
+                } else {
+                    activeCard = null;
                     Platform.runLater(this::renderActiveCard);
                 }
             } catch (Exception ignored) {
@@ -94,11 +117,43 @@ public class showCardDetailsController extends Controller {
     }
 
     private void renderActiveCard() {
-        if (activeCard == null) return;
+        User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (user == null) user = StatusContainer.currentUser;
 
-        if (cardName != null) cardName.setText(activeCard.getCardType() != null ? activeCard.getCardType() : "Primary Card");
-        if (cardBankName != null) cardBankName.setText(activeCard.getCardType() != null ? activeCard.getCardType() + " Bank" : "Fleet Partner Bank");
-        if (cardHolderName != null) cardHolderName.setText(activeCard.getCardHolder() != null ? activeCard.getCardHolder() : "Cardholder");
+        if (activeCard == null) {
+            if (cardName != null) cardName.setText("No Card");
+            if (cardBankName != null) cardBankName.setText("No Bank");
+            if (cardHolderName != null) cardHolderName.setText(user != null && user.getFullName() != null ? user.getFullName() : "-");
+            if (cardNumber != null) cardNumber.setText("No card linked");
+            if (cardValidDate != null) cardValidDate.setText("--/--");
+            if (cardBillingAddress != null) {
+                cardBillingAddress.setText(user != null && user.getAddress() != null && !user.getAddress().isBlank() 
+                        ? user.getAddress() : "SRM University-AP, Amaravati, Andhra Pradesh 522502");
+            }
+            return;
+        }
+
+        String type = activeCard.getCardType() != null ? activeCard.getCardType() : "Mastercard";
+        if (cardName != null) cardName.setText(type);
+        if (cardBankName != null) {
+            if (type.equalsIgnoreCase("visa")) cardBankName.setText("State Bank of India");
+            else if (type.equalsIgnoreCase("paypal")) cardBankName.setText("PayPal Digital");
+            else if (type.equalsIgnoreCase("tng")) cardBankName.setText("Touch 'n Go");
+            else cardBankName.setText("HDFC Bank");
+        }
+        if (cardHolderName != null) {
+            String holder = activeCard.getCardHolder();
+            if (holder == null || holder.isBlank() || holder.equalsIgnoreCase("Wong Chun Wei") || holder.equalsIgnoreCase("Alex Johnson")) {
+                if (user != null && user.getFullName() != null && !user.getFullName().isBlank()) {
+                    holder = user.getFullName();
+                } else if (user != null) {
+                    holder = user.getUsername();
+                } else {
+                    holder = "Fleet Client";
+                }
+            }
+            cardHolderName.setText(holder);
+        }
 
         if (cardNumber != null && activeCard.getCardNumber() != null) {
             String num = activeCard.getCardNumber();
@@ -107,7 +162,15 @@ public class showCardDetailsController extends Controller {
         }
 
         if (cardValidDate != null) {
-            cardValidDate.setText(activeCard.getExpiryDate() != null ? activeCard.getExpiryDate() : "12/28");
+            cardValidDate.setText(activeCard.getExpiryDate() != null ? activeCard.getExpiryDate() : "09/28");
+        }
+
+        if (cardBillingAddress != null) {
+            if (user != null && user.getAddress() != null && !user.getAddress().isBlank()) {
+                cardBillingAddress.setText(user.getAddress());
+            } else {
+                cardBillingAddress.setText("SRM University-AP, Amaravati, Andhra Pradesh 522502");
+            }
         }
     }
 
@@ -127,6 +190,9 @@ public class showCardDetailsController extends Controller {
                         renderActiveCard();
                         toggleEditUI(false);
                         AlertHelper.showSuccess("Card Updated", "Card details updated.");
+                        if (BillingComponentController.instance != null) {
+                            BillingComponentController.instance.setupCards();
+                        }
                     });
                 } catch (Exception ignored) {
                 }
@@ -142,14 +208,21 @@ public class showCardDetailsController extends Controller {
         boolean confirm = AlertHelper.showConfirmation("Remove Card", "Are you sure you want to remove this card from your wallet?");
         if (!confirm) return;
 
+        final int cardId = activeCard.getCardId();
         AsyncExecutor.getInstance().execute(() -> {
             try {
-                DAOFactory.getInstance().getBankCardDAO().deleteById(activeCard.getCardId());
+                DAOFactory.getInstance().getBankCardDAO().deleteById(cardId);
+                StatusContainer.currentChooseBankCardNum = null;
                 Platform.runLater(() -> {
                     activeCard = null;
                     if (cardNumber != null) cardNumber.setText("No card linked");
                     toggleEditUI(false);
                     AlertHelper.showSuccess("Card Removed", "Card removed from wallet.");
+                    if (BillingComponentController.instance != null) {
+                        BillingComponentController.instance.setupCards();
+                    } else {
+                        loadCardDetails();
+                    }
                 });
             } catch (Exception ignored) {
             }
