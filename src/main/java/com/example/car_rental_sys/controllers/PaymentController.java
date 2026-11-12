@@ -228,8 +228,10 @@ public class PaymentController extends Controller {
 
 
     @FXML
-
     public void initialize() {
+        try {
+            com.example.car_rental_sys.controllers.MusicPlayerController.stopPlayback();
+        } catch (Throwable ignored) {}
 
         currentVehicle = CarDetailsPageController.getSelectedVehicle();
 

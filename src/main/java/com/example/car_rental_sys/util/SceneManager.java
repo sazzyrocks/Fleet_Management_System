@@ -51,10 +51,10 @@ public final class SceneManager {
             return;
         }
 
-        // Auto-pause cockpit music when navigating away to homepage, dashboard, or other views
+        // Terminate and release cockpit infotainment music whenever leaving the driving cockpit
         if (!"drivingModePage.fxml".equalsIgnoreCase(fxmlFileName)) {
             try {
-                com.example.car_rental_sys.controllers.MusicPlayerController.pausePlayback();
+                com.example.car_rental_sys.controllers.MusicPlayerController.stopPlayback();
             } catch (Throwable ignored) {
             }
         }
