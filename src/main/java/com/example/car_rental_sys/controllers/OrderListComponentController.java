@@ -243,6 +243,9 @@ public class OrderListComponentController extends Controller {
             boolean isCustomer = (StatusContainer.currentUser == null || StatusContainer.currentUser.getRole() == Role.CUSTOMER);
             emptyLbl.setStyle("-fx-text-fill: " + (isCustomer ? "#86909c" : "#86909c") + "; -fx-font-size: 13px; -fx-padding: 40 0 0 20;");
             orderRowBox.getChildren().add(emptyLbl);
+            if (OrderDetailsComponentController.instance != null) {
+                OrderDetailsComponentController.instance.clearOrderData();
+            }
             return;
         }
 
@@ -276,6 +279,14 @@ public class OrderListComponentController extends Controller {
         }
 
         renderCurrentPageRows();
+
+        if (!displayedOrders.isEmpty()) {
+            Order firstOrder = displayedOrders.get(0);
+            if (OrderDetailsComponentController.instance != null) {
+                OrderDetailsComponentController.setSelectedOrder(firstOrder);
+                OrderDetailsComponentController.instance.populateOrderData();
+            }
+        }
     }
 
     private void renderCurrentPageRows() {

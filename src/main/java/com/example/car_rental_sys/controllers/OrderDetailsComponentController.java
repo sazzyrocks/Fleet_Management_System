@@ -112,7 +112,11 @@ public class OrderDetailsComponentController extends Controller {
     public void initialize() {
         instance = this;
         initTheme();
-        populateOrderData();
+        if (selectedOrder != null) {
+            populateOrderData();
+        } else {
+            clearOrderData();
+        }
         attachButtonEvents();
     }
 
@@ -150,8 +154,11 @@ public class OrderDetailsComponentController extends Controller {
         });
     }
 
-    private void populateOrderData() {
-        if (selectedOrder == null) return;
+    public void populateOrderData() {
+        if (selectedOrder == null) {
+            clearOrderData();
+            return;
+        }
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
         DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -169,6 +176,10 @@ public class OrderDetailsComponentController extends Controller {
         if (totalAmount != null && selectedOrder.getTotalPrice() != null) {
             totalAmount.setText("₹" + selectedOrder.getTotalPrice().toPlainString());
             if (carPrice != null) carPrice.setText("₹" + selectedOrder.getTotalPrice().toPlainString());
+        }
+
+        if (orderQty != null) {
+            orderQty.setText("1");
         }
 
         if (orderTime != null && selectedOrder.getCreatedAt() != null) {
@@ -270,6 +281,42 @@ public class OrderDetailsComponentController extends Controller {
             } catch (Exception ignored) {
             }
         });
+    }
+
+    public void clearOrderData() {
+        selectedOrder = null;
+        if (orderNum != null) orderNum.setText("--");
+        if (orderDate != null) orderDate.setText("--");
+        if (carImg != null) carImg.setImage(null);
+        if (carName != null) carName.setText("No Active Booking");
+        if (carPrice != null) carPrice.setText("--");
+        if (orderQty != null) orderQty.setText("--");
+        if (paymentType != null) paymentType.setText("--");
+        if (lblLocation != null) lblLocation.setText("--");
+        if (orderTime != null) orderTime.setText("--");
+        if (approveTime != null) approveTime.setText("--");
+        if (paymentTime != null) paymentTime.setText("--");
+        if (pickUpTime != null) pickUpTime.setText("--");
+        if (dueTime != null) dueTime.setText("--");
+        if (totalAmount != null) totalAmount.setText("--");
+        if (lblOrderStatusBadge != null) {
+            lblOrderStatusBadge.setText("NONE");
+            lblOrderStatusBadge.setStyle("-fx-background-color: transparent; -fx-text-fill: transparent;");
+        }
+        if (btnTrackOrder != null) {
+            btnTrackOrder.setDisable(true);
+            btnTrackOrder.setOpacity(0.4);
+        }
+        if (btnCancelRide != null) {
+            btnCancelRide.setDisable(true);
+            btnCancelRide.setOpacity(0.4);
+            btnCancelRide.setText("No Active Ride");
+            btnCancelRide.setStyle("");
+        }
+        if (invoiceBtn != null) {
+            invoiceBtn.setDisable(true);
+            invoiceBtn.setOpacity(0.4);
+        }
     }
 
     private void attachButtonEvents() {

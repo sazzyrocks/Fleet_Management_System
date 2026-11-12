@@ -1,5 +1,6 @@
 package com.example.car_rental_sys.ui_components;
 
+import com.example.car_rental_sys.ToolsLib.ImageTools;
 import com.example.car_rental_sys.model.DeliveryOrder;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -98,12 +99,17 @@ public class OrderCard extends Pane {
         carImg.setPreserveRatio(true);
         carImg.setScaleX(-1); // Flip horizontally to match original catalog style
 
-        String carRes = "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png";
-        try (InputStream stream = getClass().getResourceAsStream(carRes)) {
-            if (stream != null) {
-                carImg.setImage(new Image(stream));
-            }
-        } catch (Exception ignored) {}
+        Image carImage = ImageTools.getCarImage(order.getCarModel());
+        if (carImage != null && !carImage.isError()) {
+            carImg.setImage(carImage);
+        } else {
+            String carRes = "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png";
+            try (InputStream stream = getClass().getResourceAsStream(carRes)) {
+                if (stream != null) {
+                    carImg.setImage(new Image(stream));
+                }
+            } catch (Exception ignored) {}
+        }
 
         carThumbBox.getChildren().add(carImg);
 
