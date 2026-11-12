@@ -548,13 +548,17 @@ public class PaymentController extends Controller {
 
                 final Order confirmedOrder = order;
                 Platform.runLater(() -> {
+                    CustomerServiceController.hasPromptedVerificationThisSession = true;
                     OrderDetailsComponentController.setSelectedOrder(confirmedOrder);
                     SceneManager.switchScene("paySuccessPage.fxml");
                 });
             } catch (Exception e) {
                 LOGGER.severe("Rental checkout exception: " + e.getMessage());
                 // Fallback guarantee: switch to pay success screen so customer is never stuck
-                Platform.runLater(() -> SceneManager.switchScene("paySuccessPage.fxml"));
+                Platform.runLater(() -> {
+                    CustomerServiceController.hasPromptedVerificationThisSession = true;
+                    SceneManager.switchScene("paySuccessPage.fxml");
+                });
             }
         });
     }

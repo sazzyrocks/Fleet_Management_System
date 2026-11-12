@@ -38,6 +38,8 @@ public class CustomerServiceController extends Controller {
     @FXML
     private Pane settingMainPanel;
 
+    public static boolean hasPromptedVerificationThisSession = false;
+
     @FXML
     public void initialize() {
         instance = this;
@@ -46,6 +48,11 @@ public class CustomerServiceController extends Controller {
     }
 
     private void checkProfileCompletion() {
+        if (hasPromptedVerificationThisSession) {
+            return;
+        }
+        hasPromptedVerificationThisSession = true;
+
         com.example.car_rental_sys.model.User user = com.example.car_rental_sys.StatusContainer.currentUser;
         if (user != null && user.getRole() == com.example.car_rental_sys.model.Role.CUSTOMER) {
             boolean missingDL = (user.getDrivingLicense() == null || user.getDrivingLicense().trim().isEmpty());

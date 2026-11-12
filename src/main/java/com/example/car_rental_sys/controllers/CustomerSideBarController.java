@@ -256,6 +256,7 @@ public class CustomerSideBarController extends Controller {
 
     private void handleLogout() {
         ServiceFactory.getInstance().getAuthService().logout();
+        CustomerServiceController.hasPromptedVerificationThisSession = false;
         SceneManager.switchScene("loginPage.fxml");
     }
 }
