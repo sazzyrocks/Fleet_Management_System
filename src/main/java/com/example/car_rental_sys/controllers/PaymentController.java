@@ -476,6 +476,9 @@ public class PaymentController extends Controller {
         final String pickupLoc = (com.example.car_rental_sys.StatusContainer.pickUpLocation != null && !com.example.car_rental_sys.StatusContainer.pickUpLocation.isBlank())
                 ? com.example.car_rental_sys.StatusContainer.pickUpLocation
                 : "Central Terminal";
+        final String returnLoc = (finalRentalMode == RentalMode.WITH_DRIVER)
+                ? (pickupLoc.toLowerCase().contains("vijayawada") ? "Guntur Central" : "Vijayawada Junction (BZA Hub)")
+                : pickupLoc;
 
         AsyncExecutor.getInstance().execute(() -> {
             try {
@@ -497,7 +500,7 @@ public class PaymentController extends Controller {
                                 currentStart,
                                 currentEnd,
                                 pickupLoc,
-                                pickupLoc,
+                                returnLoc,
                                 finalRentalMode
                         );
                         break;

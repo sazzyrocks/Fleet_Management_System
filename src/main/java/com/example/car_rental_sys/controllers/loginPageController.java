@@ -126,6 +126,7 @@ public class loginPageController extends Controller {
             try {
                 AuthService authService = ServiceFactory.getInstance().getAuthService();
                 User user = authService.login(email, password);
+                com.example.car_rental_sys.StatusContainer.currentUser = user;
 
                 Platform.runLater(() -> {
                     loginBtn.setDisable(false);

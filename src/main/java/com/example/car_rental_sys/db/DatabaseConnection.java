@@ -88,18 +88,14 @@ public class DatabaseConnection {
     }
 
     /**
-     * Returns an active SQL connection. Automatically creates a new connection
-     * if the current one is null or has closed.
+     * Returns an active SQL connection. Returns an isolated, thread-safe connection
+     * for caller methods utilizing try-with-resources.
      *
      * @return active {@link Connection}
      * @throws SQLException if a database access error occurs
      */
-    public synchronized Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            LOGGER.info("Opening new JDBC connection to " + url);
-            connection = DriverManager.getConnection(url, username, password);
-        }
-        return connection;
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(url, username, password);
     }
 
     /**

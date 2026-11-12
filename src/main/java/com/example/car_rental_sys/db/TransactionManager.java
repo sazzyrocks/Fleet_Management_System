@@ -64,6 +64,10 @@ public final class TransactionManager {
                     conn.setAutoCommit(originalAutoCommit);
                 } catch (SQLException ignored) {
                 }
+                try {
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
             }
         }
     }

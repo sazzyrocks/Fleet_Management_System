@@ -216,7 +216,14 @@ public class OrderListComponentController extends Controller {
                     renderOrderRows();
                 });
             } catch (Exception e) {
-                Platform.runLater(this::renderSampleOrderRows);
+                java.util.logging.Logger.getLogger(OrderListComponentController.class.getName())
+                        .log(java.util.logging.Level.SEVERE, "Failed to load orders from database", e);
+                Platform.runLater(() -> {
+                    allOrders = new ArrayList<>();
+                    displayedOrders = new ArrayList<>();
+                    currentPage = 1;
+                    renderOrderRows();
+                });
             }
         });
     }
@@ -308,14 +315,12 @@ public class OrderListComponentController extends Controller {
         orderRowBox.getChildren().clear();
 
         if (numOrder != null) {
-            numOrder.setText("3 demo orders");
+            numOrder.setText("0 orders");
         }
 
-        UIOrderRow r1 = new UIOrderRow(3, "[DEMO] Porsche 718", "2026-11-02", 700, 1);
-        UIOrderRow r2 = new UIOrderRow(2, "[DEMO] Ferrari SF90", "2026-11-01", 700, 5);
-        UIOrderRow r3 = new UIOrderRow(1, "[DEMO] Corvette ZR1", "2026-11-01", 240, 5);
-
-        orderRowBox.getChildren().addAll(r1, r2, r3);
+        Label emptyLbl = new Label("No rental bookings found. Rent a car to begin!");
+        emptyLbl.setStyle("-fx-text-fill: #86909c; -fx-font-size: 13px; -fx-padding: 40 0 0 20;");
+        orderRowBox.getChildren().add(emptyLbl);
     }
 
     private int mapOrderStatusToInt(OrderStatus status) {
