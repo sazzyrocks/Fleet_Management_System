@@ -42,6 +42,24 @@ public class CustomerServiceController extends Controller {
     public void initialize() {
         instance = this;
         showOrderPage();
+        checkProfileCompletion();
+    }
+
+    private void checkProfileCompletion() {
+        com.example.car_rental_sys.model.User user = com.example.car_rental_sys.StatusContainer.currentUser;
+        if (user != null && user.getRole() == com.example.car_rental_sys.model.Role.CUSTOMER) {
+            boolean missingDL = (user.getDrivingLicense() == null || user.getDrivingLicense().trim().isEmpty());
+            boolean missingPhone = (user.getPhone() == null || user.getPhone().trim().isEmpty());
+            if (missingDL || missingPhone) {
+                javafx.application.Platform.runLater(() -> {
+                    showAccSecurity();
+                    com.example.car_rental_sys.util.AlertHelper.showWarning(
+                            "Complete Verification",
+                            "Please provide your Driving License and Contact Phone to complete account verification."
+                    );
+                });
+            }
+        }
     }
 
     public void showOrderPage() {

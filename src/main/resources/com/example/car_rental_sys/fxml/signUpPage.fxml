@@ -50,70 +50,92 @@
                 <Font name="Arial" size="14.0" />
             </font>
         </Button>
-        <Pane fx:id="textFieldContainer" layoutX="-3.0" layoutY="127.0" prefHeight="233.0" prefWidth="413.0">
-            <TextField fx:id="firstName" layoutX="15.0" layoutY="20.0" prefColumnCount="1" prefHeight="50.0"
-                       prefWidth="155.0" promptText="Michal" styleClass="txtField">
+        <Pane fx:id="textFieldContainer" layoutX="-3.0" layoutY="127.0" prefHeight="238.0" prefWidth="413.0">
+            <TextField fx:id="firstName" layoutX="15.0" layoutY="10.0" prefColumnCount="1" prefHeight="48.0"
+                       prefWidth="155.0" promptText="First name" styleClass="txtField">
                 <font>
-                    <Font name="Candara Italic" size="16.0"/>
+                    <Font name="Candara Italic" size="14.0"/>
                 </font>
                 <padding>
-                    <Insets left="15.0" right="12.0" top="12.0"/>
-                </padding>
-                <opaqueInsets>
-                    <Insets/>
-                </opaqueInsets>
-            </TextField>
-            <TextField fx:id="lastName" layoutX="194.0" layoutY="20.0" prefColumnCount="1" prefHeight="50.0"
-                       prefWidth="155.0" promptText="Masiak" styleClass="txtField">
-                <font>
-                    <Font name="Candara Italic" size="16.0"/>
-                </font>
-                <opaqueInsets>
-                    <Insets/>
-                </opaqueInsets>
-                <padding>
-                    <Insets left="15.0" right="12.0" top="12.0"/>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
                 </padding>
             </TextField>
-            <TextField fx:id="emailInput" layoutX="14.0" layoutY="92.0" prefColumnCount="1" prefHeight="50.0"
-                       prefWidth="335.0" promptText="Sample@anwhere.co" styleClass="txtField">
+            <TextField fx:id="lastName" layoutX="194.0" layoutY="10.0" prefColumnCount="1" prefHeight="48.0"
+                       prefWidth="155.0" promptText="Last name" styleClass="txtField">
                 <font>
-                    <Font name="Candara Italic" size="16.0"/>
+                    <Font name="Candara Italic" size="14.0"/>
                 </font>
-                <opaqueInsets>
-                    <Insets/>
-                </opaqueInsets>
                 <padding>
-                    <Insets left="15.0" right="12.0" top="12.0"/>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
                 </padding>
             </TextField>
-            <Label layoutX="30.0" layoutY="26.0" text="First name" textFill="#848b98">
+            <Label layoutX="27.0" layoutY="15.0" text="First name" textFill="#848b98">
                 <font>
-                    <Font name="Calibri Bold" size="12.0"/>
+                    <Font name="Calibri Bold" size="11.0"/>
                 </font>
             </Label>
-            <Label layoutX="30.0" layoutY="98.0" text="Email" textFill="#848b98">
+            <Label layoutX="206.0" layoutY="15.0" text="Last name" textFill="#848b98">
                 <font>
-                    <Font name="Calibri Bold" size="12.0"/>
+                    <Font name="Calibri Bold" size="11.0"/>
                 </font>
             </Label>
-            <Label layoutX="207.0" layoutY="26.0" text="Last name" textFill="#848b98">
+
+            <TextField fx:id="emailInput" layoutX="15.0" layoutY="68.0" prefColumnCount="1" prefHeight="48.0"
+                       prefWidth="334.0" promptText="Sample@anywhere.com" styleClass="txtField">
                 <font>
-                    <Font name="Calibri Bold" size="12.0"/>
-                </font>
-            </Label>
-            <PasswordField fx:id="password" layoutX="14.0" layoutY="168.0" prefColumnCount="1" prefHeight="50.0"
-                           prefWidth="335.0" promptText="********" styleClass="txtField">
-                <font>
-                    <Font name="Candara" size="16.0"/>
+                    <Font name="Candara Italic" size="14.0"/>
                 </font>
                 <padding>
-                    <Insets left="15.0" right="12.0" top="12.0"/>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
+                </padding>
+            </TextField>
+            <Label layoutX="27.0" layoutY="73.0" text="Email" textFill="#848b98">
+                <font>
+                    <Font name="Calibri Bold" size="11.0"/>
+                </font>
+            </Label>
+
+            <TextField fx:id="phoneInput" layoutX="15.0" layoutY="126.0" prefColumnCount="1" prefHeight="48.0"
+                       prefWidth="155.0" promptText="+91 98765 43210" styleClass="txtField">
+                <font>
+                    <Font name="Candara Italic" size="14.0"/>
+                </font>
+                <padding>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
+                </padding>
+            </TextField>
+            <TextField fx:id="licenseInput" layoutX="194.0" layoutY="126.0" prefColumnCount="1" prefHeight="48.0"
+                       prefWidth="155.0" promptText="DL-9824-77189-KL" styleClass="txtField">
+                <font>
+                    <Font name="Candara Italic" size="14.0"/>
+                </font>
+                <padding>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
+                </padding>
+            </TextField>
+            <Label layoutX="27.0" layoutY="131.0" text="Phone number" textFill="#848b98">
+                <font>
+                    <Font name="Calibri Bold" size="11.0"/>
+                </font>
+            </Label>
+            <Label layoutX="206.0" layoutY="131.0" text="Driving license" textFill="#848b98">
+                <font>
+                    <Font name="Calibri Bold" size="11.0"/>
+                </font>
+            </Label>
+
+            <PasswordField fx:id="password" layoutX="15.0" layoutY="184.0" prefColumnCount="1" prefHeight="48.0"
+                           prefWidth="334.0" promptText="********" styleClass="txtField">
+                <font>
+                    <Font name="Candara" size="14.0"/>
+                </font>
+                <padding>
+                    <Insets left="14.0" right="12.0" top="12.0"/>
                 </padding>
             </PasswordField>
-            <Label layoutX="30.0" layoutY="174.0" text="Password" textFill="#848b98">
+            <Label layoutX="27.0" layoutY="189.0" text="Password" textFill="#848b98">
                 <font>
-                    <Font name="Calibri Bold" size="12.0"/>
+                    <Font name="Calibri Bold" size="11.0"/>
                 </font>
             </Label>
         </Pane>

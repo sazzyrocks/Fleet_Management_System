@@ -44,6 +44,12 @@ public class SignUpPageController extends Controller {
     private TextField emailInput;
 
     @FXML
+    private TextField phoneInput;
+
+    @FXML
+    private TextField licenseInput;
+
+    @FXML
     private PasswordField password;
 
     @FXML
@@ -61,6 +67,8 @@ public class SignUpPageController extends Controller {
         String fName = firstName != null ? firstName.getText().trim() : "";
         String lName = lastName != null ? lastName.getText().trim() : "";
         String email = emailInput != null ? emailInput.getText().trim() : "";
+        String phone = phoneInput != null ? phoneInput.getText().trim() : "";
+        String license = licenseInput != null ? licenseInput.getText().trim() : "";
         String pass = password != null ? password.getText() : "";
 
         if (fName.isEmpty() || lName.isEmpty()) {
@@ -70,6 +78,16 @@ public class SignUpPageController extends Controller {
 
         if (email.isEmpty() || !email.contains("@")) {
             AlertHelper.showWarning("Invalid Email", "Please enter a valid email address.");
+            return;
+        }
+
+        if (phone.isEmpty()) {
+            AlertHelper.showWarning("Missing Phone", "Please enter your contact phone number.");
+            return;
+        }
+
+        if (license.isEmpty()) {
+            AlertHelper.showWarning("Missing Driving License", "Please enter your driving license number.");
             return;
         }
 
@@ -97,7 +115,8 @@ public class SignUpPageController extends Controller {
                         pass,
                         email,
                         fullName,
-                        null
+                        phone,
+                        license
                 );
 
                 Platform.runLater(() -> {

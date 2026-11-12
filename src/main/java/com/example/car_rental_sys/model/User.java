@@ -19,6 +19,10 @@ public class User implements Serializable {
     private String phone;
     private String fullName;
     private String avatarPath;
+    private String drivingLicense;
+    private String dateOfBirth;
+    private String address;
+    private String bio;
     private Role role;
     private UserStatus status;
     private LocalDateTime createdAt;
@@ -141,6 +145,38 @@ public class User implements Serializable {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getDrivingLicense() {
+        return drivingLicense;
+    }
+
+    public void setDrivingLicense(String drivingLicense) {
+        this.drivingLicense = drivingLicense;
+    }
+
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     // Role helper methods
