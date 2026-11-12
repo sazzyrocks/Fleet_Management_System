@@ -33,6 +33,19 @@ public class UserDAOImpl implements UserDAO {
         user.setRole(Role.fromString(rs.getString("role")));
         user.setStatus(UserStatus.fromString(rs.getString("status")));
 
+        try {
+            user.setDrivingLicense(rs.getString("driving_license"));
+        } catch (SQLException ignored) {}
+        try {
+            user.setDateOfBirth(rs.getString("date_of_birth"));
+        } catch (SQLException ignored) {}
+        try {
+            user.setAddress(rs.getString("address"));
+        } catch (SQLException ignored) {}
+        try {
+            user.setBio(rs.getString("bio"));
+        } catch (SQLException ignored) {}
+
         Timestamp created = rs.getTimestamp("created_at");
         if (created != null) {
             user.setCreatedAt(created.toLocalDateTime());
@@ -79,8 +92,8 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User save(User user) throws DAOException {
-        String sql = "INSERT INTO users (username, password_hash, email, phone, full_name, avatar_path, role, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, password_hash, email, phone, full_name, avatar_path, role, status, driving_license, date_of_birth, address, bio) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, user.getUsername());
@@ -91,6 +104,10 @@ public class UserDAOImpl implements UserDAO {
             stmt.setString(6, user.getAvatarPath());
             stmt.setString(7, user.getRole() != null ? user.getRole().name() : Role.CUSTOMER.name());
             stmt.setString(8, user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name());
+            stmt.setString(9, user.getDrivingLicense());
+            stmt.setString(10, user.getDateOfBirth());
+            stmt.setString(11, user.getAddress());
+            stmt.setString(12, user.getBio());
 
             int affectedRows = stmt.executeUpdate();
             if (affectedRows == 0) {
@@ -113,7 +130,8 @@ public class UserDAOImpl implements UserDAO {
     @Override
     public boolean update(User user) throws DAOException {
         String sql = "UPDATE users SET username = ?, email = ?, phone = ?, full_name = ?, " +
-                     "avatar_path = ?, role = ?, status = ? WHERE user_id = ?";
+                     "avatar_path = ?, role = ?, status = ?, driving_license = ?, " +
+                     "date_of_birth = ?, address = ?, bio = ? WHERE user_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, user.getUsername());
@@ -123,7 +141,11 @@ public class UserDAOImpl implements UserDAO {
             stmt.setString(5, user.getAvatarPath());
             stmt.setString(6, user.getRole() != null ? user.getRole().name() : Role.CUSTOMER.name());
             stmt.setString(7, user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name());
-            stmt.setInt(8, user.getUserId());
+            stmt.setString(8, user.getDrivingLicense());
+            stmt.setString(9, user.getDateOfBirth());
+            stmt.setString(10, user.getAddress());
+            stmt.setString(11, user.getBio());
+            stmt.setInt(12, user.getUserId());
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {

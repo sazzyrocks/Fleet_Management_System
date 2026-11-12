@@ -128,21 +128,27 @@ public class TrackOrderController extends Controller {
                     case PENDING -> trackingStatusController.setMilestone(0);
                     case CONFIRMED -> trackingStatusController.setMilestone(1);
                     case ACTIVE -> trackingStatusController.setMilestone(2);
-                    case COMPLETED -> trackingStatusController.setMilestone(3);
+                    case ON_RENT, COMPLETED -> trackingStatusController.setMilestone(3);
                     case CANCELLED -> trackingStatusController.setMilestone(-1);
                 }
             }
 
             if (btnReceive != null) {
-                if (status == OrderStatus.COMPLETED) {
+                if (status == OrderStatus.ON_RENT) {
                     btnReceive.setDisable(true);
-                    btnReceive.setText("Ride Completed");
+                    btnReceive.setText("Vehicle on Rent");
+                } else if (status == OrderStatus.COMPLETED) {
+                    btnReceive.setDisable(true);
+                    btnReceive.setText("Rental Completed");
                 } else if (status == OrderStatus.CANCELLED) {
                     btnReceive.setDisable(true);
                     btnReceive.setText("Ride Cancelled");
-                } else {
+                } else if (status == OrderStatus.ACTIVE) {
                     btnReceive.setDisable(false);
-                    btnReceive.setText("Order Received");
+                    btnReceive.setText("Confirm Keys Handover");
+                } else {
+                    btnReceive.setDisable(true);
+                    btnReceive.setText("Driver En Route");
                 }
             }
         }
@@ -162,11 +168,12 @@ public class TrackOrderController extends Controller {
 
         AsyncExecutor.getInstance().execute(() -> {
             try {
-                ServiceFactory.getInstance().getRentalService().completeBooking(selectedOrder.getOrderId());
-                selectedOrder.setStatus(OrderStatus.COMPLETED);
+                // Handover vehicle to customer (ACTIVE -> ON_RENT)
+                ServiceFactory.getInstance().getRentalService().handoverVehicle(selectedOrder.getOrderId());
+                selectedOrder.setStatus(OrderStatus.ON_RENT);
 
                 Platform.runLater(() -> {
-                    btnReceive.setText("Completed");
+                    btnReceive.setText("Vehicle on Rent");
                     if (trackingStatusController != null) {
                         trackingStatusController.setMilestone(3);
                     }
@@ -176,7 +183,7 @@ public class TrackOrderController extends Controller {
                     if (OrderListComponentController.instance != null) {
                         OrderListComponentController.instance.loadOrders();
                     }
-                    AlertHelper.showSuccess("Trip Completed", "Vehicle handover confirmed. Thank you for choosing our fleet service!");
+                    AlertHelper.showSuccess("Handover Confirmed", "Keys received! Your vehicle is now actively on rent.\nWhen you are done driving, return the vehicle anytime from your Orders page.");
                     if (CustomerServiceController.instance != null) {
                         CustomerServiceController.instance.closeTrackOrder();
                     } else if (AdminServiceController.instance != null) {
@@ -188,7 +195,7 @@ public class TrackOrderController extends Controller {
             } catch (Exception e) {
                 Platform.runLater(() -> {
                     btnReceive.setDisable(false);
-                    btnReceive.setText("Order Received");
+                    btnReceive.setText("Confirm Keys Handover");
                     AlertHelper.showError("Confirmation Failed", e.getMessage());
                 });
             }

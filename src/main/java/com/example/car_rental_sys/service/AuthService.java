@@ -82,7 +82,7 @@ public class AuthService {
      * @return newly created User
      * @throws AuthenticationException if validation fails or user exists
      */
-    public User register(String username, String plainPassword, String email, String fullName, String phone) throws AuthenticationException {
+    public User register(String username, String plainPassword, String email, String fullName, String phone, String drivingLicense) throws AuthenticationException {
         if (username == null || username.trim().length() < 3) {
             throw new AuthenticationException("Username must be at least 3 characters.");
         }
@@ -107,10 +107,15 @@ public class AuthService {
         newUser.setEmail(email.trim());
         newUser.setFullName(fullName != null ? fullName.trim() : username.trim());
         newUser.setPhone(phone);
+        newUser.setDrivingLicense(drivingLicense);
         newUser.setRole(Role.CUSTOMER);
         newUser.setStatus(UserStatus.ACTIVE);
 
         return userDAO.save(newUser);
+    }
+
+    public User register(String username, String plainPassword, String email, String fullName, String phone) throws AuthenticationException {
+        return register(username, plainPassword, email, fullName, phone, null);
     }
 
     /**

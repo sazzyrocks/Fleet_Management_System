@@ -2016,25 +2016,8 @@ public class CarDetailsPageController extends Controller {
 
 
         if (StatusContainer.pickUpTimeStamp == 0 || StatusContainer.returnTimeStamp == 0 || StatusContainer.returnTimeStamp <= StatusContainer.pickUpTimeStamp) {
-
-
-
-            StatusContainer.pickUpTimeStamp = System.currentTimeMillis() + 3600_000L;
-
-
-
-            StatusContainer.returnTimeStamp = StatusContainer.pickUpTimeStamp + 48L * 3600_000L;
-
-
-
-            StatusContainer.pickDateTime = DateTools.formatDateTime(new Date(StatusContainer.pickUpTimeStamp));
-
-
-
-            StatusContainer.returnDateTime = DateTools.formatDateTime(new Date(StatusContainer.returnTimeStamp));
-
-
-
+            showDatePicker();
+            return;
         }
 
 

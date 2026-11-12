@@ -86,8 +86,13 @@ public class UIOrderRow extends Pane {
             pillStyle = isCustomer
                     ? "-fx-background-color: rgba(22, 93, 255, 0.25); -fx-text-fill: #6aa1ff;"
                     : "-fx-background-color: #e8f3ff; -fx-text-fill: #165dff;";
-        } else if (orderStatus == 3 || orderStatus == 4) {
-            statusStr = (orderStatus == 4) ? "ON RENT" : "CONTINUING";
+        } else if (orderStatus == 4) {
+            statusStr = "ON RENT";
+            pillStyle = isCustomer
+                    ? "-fx-background-color: rgba(20, 201, 201, 0.25); -fx-text-fill: #14C9C9;"
+                    : "-fx-background-color: #e8fffb; -fx-text-fill: #14C9C9;";
+        } else if (orderStatus == 3) {
+            statusStr = "CONTINUING";
             pillStyle = isCustomer
                     ? "-fx-background-color: rgba(255, 125, 0, 0.25); -fx-text-fill: #ff9a2e;"
                     : "-fx-background-color: #fff7e8; -fx-text-fill: #ff7d00;";

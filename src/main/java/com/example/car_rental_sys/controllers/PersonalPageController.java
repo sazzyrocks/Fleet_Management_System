@@ -109,12 +109,18 @@ public class PersonalPageController extends Controller {
         if (currentUser != null) {
             if (ivTxtUsername != null) ivTxtUsername.setText(currentUser.getUsername());
             if (ivTxtEmail != null) ivTxtEmail.setText(currentUser.getEmail());
-            if (ivTxtPhoneNumber != null && currentUser.getPhone() != null) {
-                ivTxtPhoneNumber.setText(currentUser.getPhone());
+            if (ivTxtPhoneNumber != null) {
+                ivTxtPhoneNumber.setText(currentUser.getPhone() != null ? currentUser.getPhone() : "");
             }
-            if (ivTxtBirthday != null) ivTxtBirthday.setText("1996-05-18");
-            if (ivTxtAbout != null) ivTxtAbout.setText("Fleet client account.");
-            if (ivTxtAddress != null) ivTxtAddress.setText("SRM University-AP, Amaravati, Andhra Pradesh");
+            if (ivTxtBirthday != null) {
+                ivTxtBirthday.setText(currentUser.getDateOfBirth() != null ? currentUser.getDateOfBirth() : "");
+            }
+            if (ivTxtAbout != null) {
+                ivTxtAbout.setText(currentUser.getBio() != null ? currentUser.getBio() : "");
+            }
+            if (ivTxtAddress != null) {
+                ivTxtAddress.setText(currentUser.getAddress() != null ? currentUser.getAddress() : "");
+            }
 
             loadDefaultAvatar();
         }
@@ -149,6 +155,9 @@ public class PersonalPageController extends Controller {
         currentUser.setUsername(newUsername);
         currentUser.setEmail(newEmail);
         currentUser.setPhone(newPhone);
+        if (ivTxtBirthday != null) currentUser.setDateOfBirth(ivTxtBirthday.getText().trim());
+        if (ivTxtAbout != null) currentUser.setBio(ivTxtAbout.getText().trim());
+        if (ivTxtAddress != null) currentUser.setAddress(ivTxtAddress.getText().trim());
 
         ivSaveBtn.setDisable(true);
         AsyncExecutor.getInstance().execute(() -> {

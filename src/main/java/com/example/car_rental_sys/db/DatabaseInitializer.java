@@ -167,21 +167,14 @@ public final class DatabaseInitializer {
 
 
         if (tablesAlreadyExist()) {
-
             LOGGER.info("Database schema already initialized. Preserving existing fleet data.");
-
             try (Connection conn = DatabaseConnection.getInstance().getConnection()) {
-
+                ensureSchemaMigrations(conn);
                 ensureDefaultUsers(conn);
-
                 ensureDefaultVehicles(conn);
-
             } catch (Exception ignored) {
-
             }
-
             return true;
-
         }
 
 
@@ -267,6 +260,29 @@ public final class DatabaseInitializer {
     }
 
 
+
+    private static void ensureSchemaMigrations(Connection conn) {
+        ensureColumnExists(conn, "users", "driving_license", "VARCHAR(50) NULL");
+        ensureColumnExists(conn, "users", "date_of_birth", "VARCHAR(20) NULL");
+        ensureColumnExists(conn, "users", "address", "VARCHAR(255) NULL");
+        ensureColumnExists(conn, "users", "bio", "TEXT NULL");
+    }
+
+    private static void ensureColumnExists(Connection conn, String table, String column, String colDef) {
+        try {
+            java.sql.DatabaseMetaData meta = conn.getMetaData();
+            try (java.sql.ResultSet rs = meta.getColumns(null, null, table, column)) {
+                if (!rs.next()) {
+                    try (Statement stmt = conn.createStatement()) {
+                        stmt.executeUpdate("ALTER TABLE `" + table + "` ADD COLUMN `" + column + "` " + colDef);
+                        LOGGER.info("Added missing column '" + column + "' to table '" + table + "'");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Note during column check for {0}.{1}: {2}", new Object[]{table, column, e.getMessage()});
+        }
+    }
 
     private static void ensureDefaultUsers(Connection conn) {
 

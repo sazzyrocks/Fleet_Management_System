@@ -1,5 +1,6 @@
 package com.example.car_rental_sys.service;
 
+import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.dao.DAOFactory;
 import com.example.car_rental_sys.model.DeliveryOrder;
 import com.example.car_rental_sys.model.Order;
@@ -176,6 +177,46 @@ public class DeliveryOrderManager {
                 String power = "4.0 L Twin-Turbo";
                 String speed = "320 km/h";
 
+                boolean isChauffeur = (o.getRentalMode() == com.example.car_rental_sys.model.RentalMode.WITH_DRIVER);
+                String startLoc;
+                double sLat, sLng;
+                String destLoc;
+                double dLat, dLng;
+
+                if (isChauffeur) {
+                    // Chauffeur Mode: Pick up client at their designated location and drive to destination / airport hub
+                    startLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
+                            ? o.getPickupLocation() : "Guntur Central";
+                    double[] sCoords = resolveCoordinates(startLoc, 16.3007, 80.4639);
+                    sLat = sCoords[0];
+                    sLng = sCoords[1];
+
+                    // Destination: return location if different, otherwise major transit hub (Vijayawada Junction / Airport)
+                    if (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc)) {
+                        destLoc = o.getReturnLocation();
+                    } else {
+                        destLoc = "Vijayawada Junction (BZA Hub)";
+                    }
+                    double[] dCoords = resolveCoordinates(destLoc, 16.5175, 80.6200);
+                    dLat = dCoords[0];
+                    dLng = dCoords[1];
+                } else {
+                    // Self-Drive Mode: Driver dispatches car from Fleet Depot to Customer's chosen handover point
+                    startLoc = "SRM AP Fleet Hub, Amaravati";
+                    sLat = 16.4632;
+                    sLng = 80.5078;
+
+                    destLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
+                            ? o.getPickupLocation() : "Guntur Central";
+                    if (destLoc.toLowerCase().contains("srm") || destLoc.toLowerCase().contains("amaravati")) {
+                        destLoc = (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc))
+                                ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)";
+                    }
+                    double[] dCoords = resolveCoordinates(destLoc, 16.3007, 80.4639);
+                    dLat = dCoords[0];
+                    dLng = dCoords[1];
+                }
+
                 DeliveryOrder dOrder = new DeliveryOrder(
                         o.getOrderId(),
                         o.getOrderNumber(),
@@ -187,10 +228,10 @@ public class DeliveryOrderManager {
                         seats,
                         power,
                         speed,
-                        o.getPickupLocation() != null ? o.getPickupLocation() : "SRM University-AP, Amaravati",
-                        16.4632, 80.5078,
-                        o.getReturnLocation() != null ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)",
-                        16.5175, 80.6200,
+                        startLoc,
+                        sLat, sLng,
+                        destLoc,
+                        dLat, dLng,
                         o.getStartDate() != null ? o.getStartDate().toLocalDate().toString() : "2026-11-08",
                         o.getEndDate() != null ? o.getEndDate().toLocalDate().toString() : "2026-11-15",
                         "#0052d4", "#4364f7",
@@ -244,6 +285,9 @@ public class DeliveryOrderManager {
                     : OrderStatus.COMPLETED;
 
             order.setStatus(nextStatus);
+            if (StatusContainer.currentOrder != null && StatusContainer.currentOrder.getOrderId() == order.getOrderId()) {
+                StatusContainer.currentOrder.setStatus(nextStatus);
+            }
             if (!order.isDemo()) {
                 try {
                     DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), nextStatus);
@@ -284,5 +328,26 @@ public class DeliveryOrderManager {
     public synchronized void resetAll() {
         activeDispatchOrder = null;
         seedInitialDeliveryFleet();
+    }
+
+    public static double[] resolveCoordinates(String locationName, double defaultLat, double defaultLng) {
+        if (locationName == null || locationName.isBlank()) {
+            return new double[]{defaultLat, defaultLng};
+        }
+        String loc = locationName.toLowerCase();
+        if (loc.contains("guntur")) {
+            return new double[]{16.3007, 80.4639};
+        } else if (loc.contains("airport") || loc.contains("vga") || loc.contains("gannavaram")) {
+            return new double[]{16.5304, 80.7968};
+        } else if (loc.contains("vijayawada") || loc.contains("bza") || loc.contains("junction")) {
+            return new double[]{16.5175, 80.6200};
+        } else if (loc.contains("mangalagiri") || loc.contains("aiims")) {
+            return new double[]{16.4422, 80.5772};
+        } else if (loc.contains("secretariat") || loc.contains("velagapudi")) {
+            return new double[]{16.5417, 80.5150};
+        } else if (loc.contains("srm") || loc.contains("amaravati") || loc.contains("depot") || loc.contains("hub")) {
+            return new double[]{16.4632, 80.5078};
+        }
+        return new double[]{defaultLat, defaultLng};
     }
 }

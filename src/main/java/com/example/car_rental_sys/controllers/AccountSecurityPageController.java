@@ -124,7 +124,7 @@ public class AccountSecurityPageController extends Controller {
                 ivUsername.setText(user.getFullName() != null ? user.getFullName() : user.getUsername());
             }
             if (txtDrivingLicense != null) {
-                txtDrivingLicense.setText("DL-9824-77189-KL");
+                txtDrivingLicense.setText(user.getDrivingLicense() != null ? user.getDrivingLicense() : "");
             }
             loadAvatar();
         }
@@ -132,13 +132,21 @@ public class AccountSecurityPageController extends Controller {
 
     @FXML
     private void saveBtnClicked(MouseEvent event) {
-        String answer = txtSecurityAnswer != null ? txtSecurityAnswer.getText().trim() : "";
-        if (answer.isEmpty()) {
-            AlertHelper.showWarning("Security Answer", "Please provide an answer to your selected security question.");
-            return;
+        String license = txtDrivingLicense != null ? txtDrivingLicense.getText().trim() : "";
+
+        User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (user != null) {
+            if (!license.isEmpty()) {
+                user.setDrivingLicense(license);
+            }
+            com.example.car_rental_sys.concurrency.AsyncExecutor.getInstance().execute(() -> {
+                try {
+                    com.example.car_rental_sys.dao.DAOFactory.getInstance().getUserDAO().update(user);
+                } catch (Exception ignored) {}
+            });
         }
 
-        AlertHelper.showSuccess("Security Saved", "Your security recovery preferences have been updated.");
+        AlertHelper.showSuccess("Settings Saved", "Your driving license and security preferences have been updated.");
     }
 
     private void loadAvatar() {

@@ -16,6 +16,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -355,7 +356,14 @@ public class DriverMainPageController extends Controller {
         if (startLabel != null) startLabel.setText(order.getStartLocation());
         if (destinationLabel != null) destinationLabel.setText(order.getDestLocation());
 
-        setImageFromClasspath(carImageView, "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png");
+        if (carImageView != null) {
+            Image cImg = ImageTools.getCarImage(order.getCarModel());
+            if (cImg != null && !cImg.isError()) {
+                carImageView.setImage(cImg);
+            } else {
+                setImageFromClasspath(carImageView, "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png");
+            }
+        }
         setImageFromClasspath(renterAvatar, order.getRenterAvatar());
         ImageTools.setImageShapeToCircle(renterAvatar);
     }
