@@ -3,61 +3,43 @@ package com.example.car_rental_sys.controllers;
 
 
 import com.example.car_rental_sys.concurrency.AsyncExecutor;
-
-import java.util.List;
-import java.util.logging.Logger;
-import java.util.logging.Level;
+import com.example.car_rental_sys.dao.DAOFactory;
+import com.example.car_rental_sys.model.BankCard;
 import com.example.car_rental_sys.model.Order;
-
 import com.example.car_rental_sys.model.Payment;
-
 import com.example.car_rental_sys.model.PaymentStatus;
 import com.example.car_rental_sys.model.RentalMode;
 import com.example.car_rental_sys.model.User;
-
 import com.example.car_rental_sys.model.Vehicle;
-
 import com.example.car_rental_sys.service.PaymentService;
-
 import com.example.car_rental_sys.service.RentalService;
-
 import com.example.car_rental_sys.service.ServiceFactory;
-
 import com.example.car_rental_sys.util.AlertHelper;
-
 import com.example.car_rental_sys.util.SceneManager;
-
 import javafx.application.Platform;
-
 import javafx.event.ActionEvent;
-
 import javafx.fxml.FXML;
-
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-
 import javafx.scene.control.Label;
-
 import javafx.scene.control.RadioButton;
-
 import javafx.scene.control.ScrollPane;
-
 import javafx.scene.image.Image;
-
 import javafx.scene.image.ImageView;
-
 import javafx.scene.input.MouseEvent;
-
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-
-
+import javafx.scene.layout.VBox;
 
 import java.io.InputStream;
-
 import java.math.BigDecimal;
-
 import java.math.RoundingMode;
-
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 
@@ -224,58 +206,186 @@ public class PaymentController extends Controller {
     private RentalMode selectedRentalMode = RentalMode.SELF_DRIVE;
     private Vehicle currentVehicle;
     private BigDecimal calculatedTotal;
-
-
+    private BankCard activeCheckoutCard;
+    private List<BankCard> customerCards = new ArrayList<>();
 
     @FXML
-
     public void initialize() {
+        try {
+            com.example.car_rental_sys.controllers.MusicPlayerController.stopPlayback();
+        } catch (Throwable ignored) {}
 
         currentVehicle = CarDetailsPageController.getSelectedVehicle();
-
         if (currentVehicle == null) {
-
             currentVehicle = com.example.car_rental_sys.StatusContainer.currentVehicle;
-
         }
-
         if (currentVehicle == null) {
-
             currentVehicle = CarDetailsPageController.resolveVehicle(com.example.car_rental_sys.StatusContainer.currentCarChose);
-
         }
-
         if (currentVehicle != null) {
-
             CarDetailsPageController.setSelectedVehicle(currentVehicle);
-
             com.example.car_rental_sys.StatusContainer.currentVehicle = currentVehicle;
-
         }
-
-
 
         setupPaymentMethod();
         populateCustomerData();
         updateRentalModeUI();
         populatePricingSummary();
-
-        if (bankCardsContainer != null) {
-
-            bankCardsContainer.setVisible(false);
-
-        }
-
     }
 
-
-
     private void setupPaymentMethod() {
-
         if (radioBtn2 != null) radioBtn2.setSelected(true);
-
         if (radioBtn1 != null) radioBtn1.setSelected(false);
+        if (bankCardsContainer != null) {
+            bankCardsContainer.setVisible(false);
+            bankCardsContainer.setStyle("-fx-background: #0f172a; -fx-background-color: #0f172a; -fx-border-color: #1e293b; -fx-border-radius: 8; -fx-background-radius: 8;");
+        }
+        setupBankCards();
+    }
 
+    private void setupBankCards() {
+        User user = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (user == null) user = com.example.car_rental_sys.StatusContainer.currentUser;
+        if (user == null) return;
+
+        final User currentUser = user;
+        AsyncExecutor.getInstance().execute(() -> {
+            try {
+                ServiceFactory.getInstance().getPaymentService().ensureDefaultCardForUser(currentUser);
+                List<BankCard> cards = DAOFactory.getInstance().getBankCardDAO().findByUserId(currentUser.getUserId());
+                Platform.runLater(() -> {
+                    customerCards = cards != null ? cards : new ArrayList<>();
+                    if (!customerCards.isEmpty()) {
+                        activeCheckoutCard = customerCards.stream()
+                                .filter(c -> Boolean.TRUE.equals(c.getIsDefault()))
+                                .findFirst()
+                                .orElse(customerCards.get(0));
+                        updateActiveCardSummary();
+                    }
+                    populateBankCardsList();
+                });
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private void updateActiveCardSummary() {
+        if (activeCheckoutCard == null) return;
+
+        String type = activeCheckoutCard.getCardType() != null ? activeCheckoutCard.getCardType() : "Mastercard";
+        String num = activeCheckoutCard.getCardNumber() != null ? activeCheckoutCard.getCardNumber() : "6742";
+        String last4 = num.length() >= 4 ? num.substring(num.length() - 4) : num;
+
+        if (cardTypeAndNum != null) {
+            cardTypeAndNum.setText(type + " ****" + last4);
+        }
+        if (expiresDate != null) {
+            expiresDate.setText("Expires on " + (activeCheckoutCard.getExpiryDate() != null ? activeCheckoutCard.getExpiryDate() : "09/28"));
+        }
+
+        if (bankcardImage != null) {
+            String tl = type.toLowerCase();
+            String iconPath;
+            if (tl.contains("visa")) iconPath = "/com/example/car_rental_sys/image/UI/cardVisa.png";
+            else if (tl.contains("paypal")) iconPath = "/com/example/car_rental_sys/image/UI/cardPaypal.png";
+            else if (tl.contains("tng") || tl.contains("touch")) iconPath = "/com/example/car_rental_sys/image/UI/cardTng.png";
+            else iconPath = "/com/example/car_rental_sys/image/UI/mastercard.png";
+            try {
+                Image img = com.example.car_rental_sys.ToolsLib.ImageTools.getImageObjFromPath(iconPath);
+                if (img != null) bankcardImage.setImage(img);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void populateBankCardsList() {
+        if (bankCardsContainer == null) return;
+
+        VBox listVBox = new VBox(8);
+        listVBox.setPadding(new Insets(10, 15, 10, 15));
+        listVBox.setStyle("-fx-background-color: #0f172a;");
+        listVBox.setPrefWidth(700);
+
+        for (BankCard card : customerCards) {
+            HBox row = new HBox(15);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setPadding(new Insets(10, 14, 10, 14));
+            row.setPrefHeight(48);
+
+            boolean isCurrent = (activeCheckoutCard != null && activeCheckoutCard.getCardId() == card.getCardId());
+            row.setStyle(isCurrent
+                    ? "-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #3b82f6; -fx-border-radius: 8; -fx-cursor: hand;"
+                    : "-fx-background-color: #162032; -fx-background-radius: 8; -fx-border-color: #273549; -fx-border-radius: 8; -fx-cursor: hand;");
+
+            ImageView icon = new ImageView();
+            icon.setFitHeight(22);
+            icon.setFitWidth(32);
+            icon.setPreserveRatio(true);
+            String type = card.getCardType() != null ? card.getCardType() : "Mastercard";
+            String tl = type.toLowerCase();
+            String iconPath;
+            if (tl.contains("visa")) iconPath = "/com/example/car_rental_sys/image/UI/cardVisa.png";
+            else if (tl.contains("paypal")) iconPath = "/com/example/car_rental_sys/image/UI/cardPaypal.png";
+            else if (tl.contains("tng") || tl.contains("touch")) iconPath = "/com/example/car_rental_sys/image/UI/cardTng.png";
+            else iconPath = "/com/example/car_rental_sys/image/UI/cardMasterCard.png";
+            Image iconImg = com.example.car_rental_sys.ToolsLib.ImageTools.getImageObjFromPath(iconPath);
+            if (iconImg != null) icon.setImage(iconImg);
+
+            String num = card.getCardNumber() != null ? card.getCardNumber() : "6742";
+            String last4 = num.length() >= 4 ? num.substring(num.length() - 4) : num;
+            Label title = new Label(type + "  •••• " + last4);
+            title.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;");
+            title.setPrefWidth(260);
+
+            Label exp = new Label("Exp: " + (card.getExpiryDate() != null ? card.getExpiryDate() : "09/28"));
+            exp.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+            exp.setPrefWidth(120);
+
+            Label balance = new Label("Bal: ₹" + (card.getBalance() != null ? card.getBalance().intValue() : 50000));
+            balance.setStyle("-fx-text-fill: #10b981; -fx-font-size: 12px;");
+            balance.setPrefWidth(140);
+
+            Label selectBadge = new Label(isCurrent ? "SELECTED" : "USE");
+            selectBadge.setStyle(isCurrent
+                    ? "-fx-background-color: #2563eb; -fx-text-fill: white; -fx-padding: 3 8 3 8; -fx-background-radius: 4; -fx-font-size: 10px; -fx-font-weight: bold;"
+                    : "-fx-background-color: #334155; -fx-text-fill: #cbd5e1; -fx-padding: 3 8 3 8; -fx-background-radius: 4; -fx-font-size: 10px;");
+
+            row.getChildren().addAll(icon, title, exp, balance, selectBadge);
+
+            row.setOnMouseClicked(e -> {
+                activeCheckoutCard = card;
+                updateActiveCardSummary();
+                if (radioBtn2 != null) radioBtn2.setSelected(true);
+                if (radioBtn1 != null) radioBtn1.setSelected(false);
+                bankCardsContainer.setVisible(false);
+            });
+
+            row.setOnMouseEntered(e -> {
+                if (activeCheckoutCard == null || activeCheckoutCard.getCardId() != card.getCardId()) {
+                    row.setStyle("-fx-background-color: #202d42; -fx-background-radius: 8; -fx-border-color: #475569; -fx-border-radius: 8; -fx-cursor: hand;");
+                }
+            });
+            row.setOnMouseExited(e -> {
+                boolean sel = (activeCheckoutCard != null && activeCheckoutCard.getCardId() == card.getCardId());
+                row.setStyle(sel
+                        ? "-fx-background-color: #1e293b; -fx-background-radius: 8; -fx-border-color: #3b82f6; -fx-border-radius: 8; -fx-cursor: hand;"
+                        : "-fx-background-color: #162032; -fx-background-radius: 8; -fx-border-color: #273549; -fx-border-radius: 8; -fx-cursor: hand;");
+            });
+
+            listVBox.getChildren().add(row);
+        }
+
+        // Add "+ Add New Payment Card" row
+        HBox addRow = new HBox(12);
+        addRow.setAlignment(Pos.CENTER);
+        addRow.setPadding(new Insets(8, 14, 8, 14));
+        addRow.setStyle("-fx-background-color: #131c2e; -fx-background-radius: 8; -fx-border-color: #2563eb; -fx-border-style: dashed; -fx-border-radius: 8; -fx-cursor: hand;");
+        Label addLbl = new Label("+ Add New Payment Card");
+        addLbl.setStyle("-fx-text-fill: #60a5fa; -fx-font-weight: bold; -fx-font-size: 13px;");
+        addRow.getChildren().add(addLbl);
+        addRow.setOnMouseClicked(e -> SceneManager.switchScene("addBankCardPage.fxml"));
+        listVBox.getChildren().add(addRow);
+
+        bankCardsContainer.setContent(listVBox);
     }
 
 
@@ -526,7 +636,12 @@ public class PaymentController extends Controller {
                 Payment payment = new Payment();
                 payment.setOrderId(order.getOrderId());
                 payment.setAmount(calculatedTotal != null ? calculatedTotal : (order.getTotalPrice() != null ? order.getTotalPrice() : new BigDecimal("280.00")));
-                payment.setPaymentMethod(radioBtn1 != null && radioBtn1.isSelected() ? "PayPal" : "CreditCard");
+                String method = "PayPal";
+                if (radioBtn2 != null && radioBtn2.isSelected()) {
+                    method = (activeCheckoutCard != null && activeCheckoutCard.getCardType() != null)
+                            ? activeCheckoutCard.getCardType() : "Mastercard";
+                }
+                payment.setPaymentMethod(method);
                 payment.setPaymentStatus(PaymentStatus.SUCCESS);
 
                 try {
@@ -586,39 +701,31 @@ public class PaymentController extends Controller {
 
 
     @FXML
-
     private void selectRadioBtn1(MouseEvent event) {
-
         if (radioBtn1 != null) radioBtn1.setSelected(true);
-
         if (radioBtn2 != null) radioBtn2.setSelected(false);
-
-    }
-
-
-
-    @FXML
-
-    private void selectRadioBtn2(MouseEvent event) {
-
-        if (radioBtn2 != null) radioBtn2.setSelected(true);
-
-        if (radioBtn1 != null) radioBtn1.setSelected(false);
-
-    }
-
-
-
-    @FXML
-
-    private void showBankCardChooser(MouseEvent event) {
-
         if (bankCardsContainer != null) {
-
-            bankCardsContainer.setVisible(!bankCardsContainer.isVisible());
-
+            bankCardsContainer.setVisible(false);
         }
+    }
 
+    @FXML
+    private void selectRadioBtn2(MouseEvent event) {
+        if (radioBtn2 != null) radioBtn2.setSelected(true);
+        if (radioBtn1 != null) radioBtn1.setSelected(false);
+    }
+
+    @FXML
+    private void showBankCardChooser(MouseEvent event) {
+        if (bankCardsContainer != null) {
+            boolean willShow = !bankCardsContainer.isVisible();
+            bankCardsContainer.setVisible(willShow);
+            if (willShow) {
+                if (radioBtn2 != null) radioBtn2.setSelected(true);
+                if (radioBtn1 != null) radioBtn1.setSelected(false);
+                populateBankCardsList();
+            }
+        }
     }
 
 

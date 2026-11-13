@@ -42,9 +42,11 @@ public class PaySuccessPageController extends Controller {
     private MediaPlayer musicPlayer;
     private PauseTransition autoNavTimer;
     private boolean isNavigating = false;
+    private long screenLoadTime = 0L;
 
     @FXML
     public void initialize() {
+        screenLoadTime = System.currentTimeMillis();
         populateOrderSummary();
         playCelebrationVideo();
         setupKeyHandlers();
@@ -75,19 +77,24 @@ public class PaySuccessPageController extends Controller {
                     mediaView.setMediaPlayer(videoPlayer);
                 }
                 videoPlayer.setVolume(1.0);
-                videoPlayer.setAutoPlay(true);
+                videoPlayer.setAutoPlay(false);
 
                 videoPlayer.setOnReady(() -> {
                     LOGGER.info("Celebration video loaded successfully, starting playback with audio.");
                     if (videoPlayer != null) {
+                        videoPlayer.seek(Duration.ZERO);
                         videoPlayer.play();
                     }
                 });
 
                 videoPlayer.setOnEndOfMedia(() -> {
                     LOGGER.info("Celebration video playback ended.");
+                    if (videoPlayer != null && videoPlayer.getCurrentTime().toSeconds() < 2.0) {
+                        LOGGER.warning("Ignoring premature onEndOfMedia event");
+                        return;
+                    }
                     showCelebrationCard();
-                    scheduleAutoNav(4);
+                    scheduleAutoNav(5);
                 });
 
                 videoPlayer.setOnError(() -> {
@@ -96,8 +103,8 @@ public class PaySuccessPageController extends Controller {
                     fallbackToAudioAndCard();
                 });
 
-                // Global maximum safety timer (20s) so customer is never stuck
-                autoNavTimer = new PauseTransition(Duration.seconds(20));
+                // Global maximum safety timer (22s) so customer is never stuck
+                autoNavTimer = new PauseTransition(Duration.seconds(22));
                 autoNavTimer.setOnFinished(e -> handleViewOrders());
                 autoNavTimer.play();
             } else {
@@ -119,18 +126,30 @@ public class PaySuccessPageController extends Controller {
                 Media audioMedia = new Media(musicUrl.toExternalForm());
                 musicPlayer = new MediaPlayer(audioMedia);
                 musicPlayer.setVolume(0.9);
-                musicPlayer.setAutoPlay(true);
                 musicPlayer.play();
             }
         } catch (Throwable ignored) {}
 
-        scheduleAutoNav(5);
+        scheduleAutoNav(6);
     }
 
     private void showCelebrationCard() {
         Platform.runLater(() -> {
-            if (celebrationCard != null) {
+            if (celebrationCard != null && !celebrationCard.isVisible()) {
+                celebrationCard.setOpacity(0.0);
+                celebrationCard.setScaleX(0.85);
+                celebrationCard.setScaleY(0.85);
                 celebrationCard.setVisible(true);
+
+                javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(Duration.millis(500), celebrationCard);
+                ft.setToValue(1.0);
+
+                javafx.animation.ScaleTransition st = new javafx.animation.ScaleTransition(Duration.millis(500), celebrationCard);
+                st.setToX(1.0);
+                st.setToY(1.0);
+
+                javafx.animation.ParallelTransition pt = new javafx.animation.ParallelTransition(ft, st);
+                pt.play();
             }
         });
     }
@@ -145,6 +164,11 @@ public class PaySuccessPageController extends Controller {
     @FXML
     public void handleViewOrders() {
         if (isNavigating) return;
+        // Minimum display guard: Prevent accidental instant skips from leftover keys or clicks
+        if (System.currentTimeMillis() - screenLoadTime < 1800) {
+            LOGGER.info("Skipping premature navigation request (minimum display guard active)");
+            return;
+        }
         isNavigating = true;
 
         if (autoNavTimer != null) {
@@ -180,9 +204,8 @@ public class PaySuccessPageController extends Controller {
                 mainPane.setFocusTraversable(true);
                 mainPane.requestFocus();
                 mainPane.setOnKeyPressed(event -> {
-                    if (event.getCode() == KeyCode.SPACE
-                            || event.getCode() == KeyCode.ENTER
-                            || event.getCode() == KeyCode.ESCAPE) {
+                    // Do NOT allow ENTER to skip (ENTER is used to submit payment)
+                    if (event.getCode() == KeyCode.ESCAPE || event.getCode() == KeyCode.SPACE) {
                         handleViewOrders();
                     }
                 });

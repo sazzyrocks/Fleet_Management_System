@@ -55,6 +55,67 @@ public class PaymentService {
     }
 
     /**
+     * Calculates the total rental expenditure for a specific customer.
+     *
+     * @param customerId ID of the customer
+     * @return sum of completed payments for customer orders
+     */
+    public BigDecimal getTotalSpendingByCustomer(int customerId) {
+        try {
+            List<Order> customerOrders = orderDAO.findByCustomerId(customerId);
+            java.util.Set<Integer> orderIds = customerOrders.stream()
+                    .map(Order::getOrderId)
+                    .collect(java.util.stream.Collectors.toSet());
+            return paymentDAO.findAll().stream()
+                    .filter(p -> p.getOrderId() != null && orderIds.contains(p.getOrderId()))
+                    .filter(p -> PaymentStatus.SUCCESS.equals(p.getPaymentStatus()))
+                    .map(Payment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Guarantees that a customer has at least one valid default payment card in their wallet.
+     * If no cards exist in the database, automatically provisions an active Mastercard.
+     *
+     * @param user authenticated user
+     * @return active or newly provisioned default BankCard
+     */
+    public BankCard ensureDefaultCardForUser(User user) {
+        if (user == null) return null;
+        try {
+            List<BankCard> cards = bankCardDAO.findByUserId(user.getUserId());
+            if (!cards.isEmpty()) {
+                return cards.stream()
+                        .filter(c -> Boolean.TRUE.equals(c.getIsDefault()))
+                        .findFirst()
+                        .orElse(cards.get(0));
+            }
+
+            BankCard defaultCard = new BankCard();
+            defaultCard.setUserId(user.getUserId());
+            defaultCard.setCardType("Mastercard");
+            defaultCard.setCardNumber("5412751234126742");
+            String name = user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getUsername();
+            defaultCard.setCardHolder(name != null ? name : "Fleet Customer");
+            defaultCard.setExpiryDate("09/28");
+            defaultCard.setCvv("123");
+            defaultCard.setBalance(new BigDecimal("50000.00"));
+            defaultCard.setIsDefault(true);
+
+            BankCard saved = bankCardDAO.save(defaultCard);
+            if (saved != null && saved.getCardId() > 0) {
+                bankCardDAO.setDefaultCard(user.getUserId(), saved.getCardId());
+            }
+            return saved;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Processes payment for a rental order with ACID transactional atomicity.
      *
      * @param orderId order ID being paid

@@ -244,5 +244,5 @@
             <Image url="@../image/cars/Ferrari_California.png" />
         </ImageView>
     </Pane>
-    <ScrollPane fx:id="bankCardsContainer" layoutX="95.0" layoutY="665.0" prefHeight="165.0" prefWidth="720.0" />
+    <ScrollPane fx:id="bankCardsContainer" hbarPolicy="NEVER" layoutX="95.0" layoutY="665.0" prefHeight="150.0" prefWidth="720.0" style="-fx-background: #0f172a; -fx-background-color: #0f172a; -fx-border-color: #1e293b; -fx-border-radius: 8; -fx-background-radius: 8;" vbarPolicy="AS_NEEDED" visible="false" />
 </Pane>
