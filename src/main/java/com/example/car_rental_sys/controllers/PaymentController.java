@@ -284,9 +284,12 @@ public class PaymentController extends Controller {
         }
 
         if (bankcardImage != null) {
-            String iconPath = type.toLowerCase().contains("visa")
-                    ? "/com/example/car_rental_sys/image/UI/cardVisa.png"
-                    : "/com/example/car_rental_sys/image/UI/mastercard.png";
+            String tl = type.toLowerCase();
+            String iconPath;
+            if (tl.contains("visa")) iconPath = "/com/example/car_rental_sys/image/UI/cardVisa.png";
+            else if (tl.contains("paypal")) iconPath = "/com/example/car_rental_sys/image/UI/cardPaypal.png";
+            else if (tl.contains("tng") || tl.contains("touch")) iconPath = "/com/example/car_rental_sys/image/UI/cardTng.png";
+            else iconPath = "/com/example/car_rental_sys/image/UI/mastercard.png";
             try {
                 Image img = com.example.car_rental_sys.ToolsLib.ImageTools.getImageObjFromPath(iconPath);
                 if (img != null) bankcardImage.setImage(img);
@@ -318,9 +321,12 @@ public class PaymentController extends Controller {
             icon.setFitWidth(32);
             icon.setPreserveRatio(true);
             String type = card.getCardType() != null ? card.getCardType() : "Mastercard";
-            String iconPath = type.toLowerCase().contains("visa")
-                    ? "/com/example/car_rental_sys/image/UI/cardVisa.png"
-                    : "/com/example/car_rental_sys/image/UI/cardMasterCard.png";
+            String tl = type.toLowerCase();
+            String iconPath;
+            if (tl.contains("visa")) iconPath = "/com/example/car_rental_sys/image/UI/cardVisa.png";
+            else if (tl.contains("paypal")) iconPath = "/com/example/car_rental_sys/image/UI/cardPaypal.png";
+            else if (tl.contains("tng") || tl.contains("touch")) iconPath = "/com/example/car_rental_sys/image/UI/cardTng.png";
+            else iconPath = "/com/example/car_rental_sys/image/UI/cardMasterCard.png";
             Image iconImg = com.example.car_rental_sys.ToolsLib.ImageTools.getImageObjFromPath(iconPath);
             if (iconImg != null) icon.setImage(iconImg);
 

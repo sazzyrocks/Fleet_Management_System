@@ -100,7 +100,7 @@ public class BillingComponentController extends Controller {
                         String bank = "HDFC Bank";
                         if (type.contains("visa")) bank = "State Bank of India";
                         else if (type.contains("paypal")) bank = "PayPal Digital";
-                        else if (type.contains("tng")) bank = "Touch 'n Go";
+                        else if (type.contains("tng") || type.contains("touch")) bank = "Touch 'n Go eWallet";
 
                         PaymentCard pc = new PaymentCard(type, card.getCardNumber(), name, bank, balance);
                         cardPane.getChildren().add(pc);

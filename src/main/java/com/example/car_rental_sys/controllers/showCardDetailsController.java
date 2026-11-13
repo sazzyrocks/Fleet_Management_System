@@ -136,9 +136,10 @@ public class showCardDetailsController extends Controller {
         String type = activeCard.getCardType() != null ? activeCard.getCardType() : "Mastercard";
         if (cardName != null) cardName.setText(type);
         if (cardBankName != null) {
-            if (type.equalsIgnoreCase("visa")) cardBankName.setText("State Bank of India");
-            else if (type.equalsIgnoreCase("paypal")) cardBankName.setText("PayPal Digital");
-            else if (type.equalsIgnoreCase("tng")) cardBankName.setText("Touch 'n Go");
+            String tl = type.toLowerCase();
+            if (tl.contains("visa")) cardBankName.setText("State Bank of India");
+            else if (tl.contains("paypal")) cardBankName.setText("PayPal Digital");
+            else if (tl.contains("tng") || tl.contains("touch")) cardBankName.setText("Touch 'n Go eWallet");
             else cardBankName.setText("HDFC Bank");
         }
         if (cardHolderName != null) {

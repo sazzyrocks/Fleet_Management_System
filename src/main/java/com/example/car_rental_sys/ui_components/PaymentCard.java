@@ -43,63 +43,77 @@ public class PaymentCard extends Pane {
     }
 
     private void selectCardType(String type) {
-        switch (type.toLowerCase()) {
-            case "visa":
-                initBankCard("visa");
-                break;
-            case "mastercard":
-            case "master":
-                initBankCard("master");
-                break;
-            case "tng":
-                initWalletCard("tng");
-                break;
-            case "paypal":
-                initWalletCard("paypal");
-                break;
-            default:
-                initAddNewCard();
-                break;
+        String t = type != null ? type.toLowerCase().trim() : "";
+        if (t.contains("visa")) {
+            initBankCard("visa");
+        } else if (t.contains("master")) {
+            initBankCard("master");
+        } else if (t.contains("tng") || t.contains("touch")) {
+            initWalletCard("tng");
+        } else if (t.contains("paypal")) {
+            initWalletCard("paypal");
+        } else if (t.contains("addnew") || t.contains("newcard")) {
+            initAddNewCard();
+        } else {
+            initBankCard("master");
         }
     }
 
     private void initWalletCard(String type) {
-        ImageView imageView = new ImageView();
-        imageView.setFitHeight(20);
-        imageView.setFitWidth(20);
-        imageView.setLayoutX(10);
-        imageView.setLayoutY(6);
+        boolean isTng = type.toLowerCase().contains("tng") || type.toLowerCase().contains("touch");
 
-        String path = Objects.equals(type, "tng")
+        ImageView imageView = new ImageView();
+        imageView.setFitHeight(22);
+        imageView.setFitWidth(28);
+        imageView.setLayoutX(12);
+        imageView.setLayoutY(10);
+        imageView.setPreserveRatio(true);
+
+        String path = isTng
                 ? "/com/example/car_rental_sys/image/UI/cardTng.png"
                 : "/com/example/car_rental_sys/image/UI/cardPaypal.png";
         Image img = ImageTools.getImageObjFromPath(path);
         if (img != null) imageView.setImage(img);
 
-        Label nameLbl = new Label(this.cardName);
-        nameLbl.setStyle("-fx-text-fill: #86909C; -fx-font-size: 11px; -fx-font-weight: bold;");
+        String displayName = isTng ? "Touch 'n Go" : "PayPal";
+        Label nameLbl = new Label(displayName);
+        nameLbl.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 11px; -fx-font-weight: bold;");
         nameLbl.setLayoutX(44);
-        nameLbl.setLayoutY(10);
+        nameLbl.setLayoutY(12);
 
-        Label balLbl = new Label("₹ " + this.cardBalance + ".00");
-        balLbl.setStyle("-fx-text-fill: #0E42D2; -fx-font-size: 16px; -fx-font-weight: bold;");
-        balLbl.setLayoutX(16);
-        balLbl.setLayoutY(40);
+        Label balLbl = new Label("₹ " + this.cardBalance);
+        balLbl.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 14px; -fx-font-weight: bold;");
+        balLbl.setLayoutX(12);
+        balLbl.setLayoutY(38);
 
-        this.getChildren().addAll(imageView, nameLbl, balLbl);
-        this.setStyle("-fx-background-color: #ffffff; -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #C9CDD4; -fx-border-width: 1px;");
+        String last4 = this.cardNumber.length() >= 4
+                ? this.cardNumber.substring(this.cardNumber.length() - 4)
+                : this.cardNumber;
+        Label numLbl = new Label("•••• " + last4);
+        numLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px; -fx-font-weight: bold;");
+        numLbl.setLayoutX(12);
+        numLbl.setLayoutY(66);
+
+        this.getChildren().addAll(imageView, nameLbl, balLbl, numLbl);
+        if (isTng) {
+            this.setStyle("-fx-background-color: linear-gradient(to bottom, #001f3f, #005bac); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #38bdf8; -fx-border-width: 1px;");
+        } else {
+            this.setStyle("-fx-background-color: linear-gradient(to bottom, #001833, #00457c); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #0079c1; -fx-border-width: 1px;");
+        }
     }
 
     private void initBankCard(String type) {
         ImageView imageView = new ImageView();
         imageView.setFitHeight(20);
         imageView.setLayoutX(10);
-        imageView.setLayoutY(6);
+        imageView.setLayoutY(8);
+        imageView.setPreserveRatio(true);
 
-        String logoPath = Objects.equals(type, "visa")
+        boolean isVisa = type.toLowerCase().contains("visa");
+        String logoPath = isVisa
                 ? "/com/example/car_rental_sys/image/UI/cardVisa.png"
                 : "/com/example/car_rental_sys/image/UI/cardMasterCard.png";
-        imageView.setFitWidth(Objects.equals(type, "visa") ? 20 : 32);
+        imageView.setFitWidth(isVisa ? 24 : 32);
         Image logoImg = ImageTools.getImageObjFromPath(logoPath);
         if (logoImg != null) imageView.setImage(logoImg);
 
@@ -107,26 +121,26 @@ public class PaymentCard extends Pane {
                 ? this.cardNumber.substring(this.cardNumber.length() - 4)
                 : "1234";
 
-        Label numLbl = new Label("**" + last4Digits);
+        Label numLbl = new Label("•••• " + last4Digits);
         numLbl.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 11px; -fx-font-weight: bold;");
         numLbl.setLayoutX(10);
-        numLbl.setLayoutY(70);
+        numLbl.setLayoutY(68);
 
         Label bNameLbl = new Label(this.bankName);
         bNameLbl.setStyle("-fx-text-fill: #ffffff; -fx-font-size: 13px; -fx-font-weight: bold;");
         bNameLbl.setLayoutX(26);
-        bNameLbl.setLayoutY(44);
+        bNameLbl.setLayoutY(42);
 
         ImageView wirelessIcon = new ImageView();
-        wirelessIcon.setFitHeight(24);
-        wirelessIcon.setFitWidth(24);
+        wirelessIcon.setFitHeight(20);
+        wirelessIcon.setFitWidth(20);
         wirelessIcon.setLayoutX(118);
-        wirelessIcon.setLayoutY(20);
+        wirelessIcon.setLayoutY(16);
         Image wImg = ImageTools.getImageObjFromPath("/com/example/car_rental_sys/image/UI/wireless.png");
         if (wImg != null) wirelessIcon.setImage(wImg);
 
         this.getChildren().addAll(imageView, numLbl, bNameLbl, wirelessIcon);
-        if ("visa".equalsIgnoreCase(type)) {
+        if (isVisa) {
             this.setStyle("-fx-background-color: linear-gradient(to bottom, #0f172a, #1e3a8a); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #3b82f6; -fx-border-width: 1px;");
         } else {
             this.setStyle("-fx-background-color: linear-gradient(to bottom, #18181b, #450a0a); -fx-background-radius: 6px; -fx-border-radius: 6px; -fx-border-color: #f59e0b; -fx-border-width: 1px;");
@@ -156,7 +170,8 @@ public class PaymentCard extends Pane {
         this.setOnMouseExited(event -> this.setCursor(Cursor.DEFAULT));
 
         this.setOnMouseClicked(event -> {
-            if ("addNewCard".equalsIgnoreCase(cardType)) {
+            String t = cardType != null ? cardType.toLowerCase() : "";
+            if (t.contains("addnew") || t.contains("newcard")) {
                 com.example.car_rental_sys.util.SceneManager.switchScene("addBankCardPage.fxml");
             } else {
                 StatusContainer.currentChooseBankCardNum = this.cardNumber;
