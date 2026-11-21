@@ -147,7 +147,7 @@ public class ImageTools {
                 matched = "McLaren_Senna.png";
             } else if (lower.contains("supra")) {
                 matched = "Toyota_GR_Supra.png";
-            } else if (lower.contains("koenigsegg")) {
+            } else if (lower.contains("koenigsegg") || lower.contains("jesko")) {
                 matched = "Koenigsegg.png";
             }
 

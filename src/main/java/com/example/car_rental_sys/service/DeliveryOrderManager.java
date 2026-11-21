@@ -75,6 +75,7 @@ public class DeliveryOrderManager {
 
             String cModel = vehicleOpt.map(v -> v.getModel().replace(" ", "_")).orElse("Porsche_718");
             String cPlate = vehicleOpt.map(Vehicle::getLicensePlate).orElse("AP 39 DL 1001");
+            String carImgPath = vehicleOpt.map(Vehicle::getImagePath).orElse("/com/example/car_rental_sys/image/cars/" + cModel + ".png");
             String seats = vehicleOpt.map(v -> (v.getSeats() != null ? v.getSeats() : 4) + " Seats").orElse("4 Seats");
             String power = vehicleOpt.map(v -> (v.getFuelType() != null ? v.getFuelType().name() : "Petrol") + " • " + (v.getTransmission() != null ? v.getTransmission().name() : "Auto")).orElse("3.0 L Turbo");
             String speed = "280 km/h";
@@ -144,6 +145,7 @@ public class DeliveryOrderManager {
             );
             dOrder.setRentalMode(o.getRentalMode());
             dOrder.setDemo(false);
+            dOrder.setCarImagePath(carImgPath);
             return dOrder;
         } catch (Exception e) {
             return null;
@@ -165,6 +167,9 @@ public class DeliveryOrderManager {
             if (confirmed != null) dbOrders.addAll(confirmed);
             List<Order> pending = orderDao.findByStatus(OrderStatus.PENDING);
             if (pending != null) dbOrders.addAll(pending);
+
+            // Sort newest bookings first so driver sees the latest customer booking at card 0
+            dbOrders.sort((a, b) -> Integer.compare(b.getOrderId(), a.getOrderId()));
 
             for (Order o : dbOrders) {
                 if (completedOrderIds.contains(o.getOrderId())) {

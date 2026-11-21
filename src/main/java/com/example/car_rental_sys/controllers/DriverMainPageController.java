@@ -395,11 +395,14 @@ public class DriverMainPageController extends Controller {
         if (destinationLabel != null) destinationLabel.setText(order.getDestLocation());
 
         if (carImageView != null) {
-            Image cImg = ImageTools.getCarImage(order.getCarModel());
+            Image cImg = ImageTools.getCarImage(order.getCarModel(), order.getCarImagePath());
             if (cImg != null && !cImg.isError()) {
                 carImageView.setImage(cImg);
             } else {
-                setImageFromClasspath(carImageView, "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png");
+                String fallbackPath = (order.getCarImagePath() != null && !order.getCarImagePath().isBlank())
+                        ? order.getCarImagePath()
+                        : "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png";
+                setImageFromClasspath(carImageView, fallbackPath);
             }
         }
         setImageFromClasspath(renterAvatar, order.getRenterAvatar());
