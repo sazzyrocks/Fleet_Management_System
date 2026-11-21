@@ -16,13 +16,14 @@ import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.util.Duration;
 
+import java.io.File;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Controller for Payment Success Confirmation Screen.
- * Plays the celebratory supercar animation video with native audio,
+ * Plays the celebratory supercar animation video with native audio for all car bookings,
  * displays reservation confirmation telemetry, and auto-navigates to customer orders.
  */
 public class PaySuccessPageController extends Controller {
@@ -38,69 +39,142 @@ public class PaySuccessPageController extends Controller {
     @FXML private Button btnViewOrders;
     @FXML private Button btnSkip;
 
+    // Static references to guarantee single-instance playback and prevent Windows Media Foundation lockouts
+    private static MediaPlayer activeVideoPlayer;
+
     private MediaPlayer videoPlayer;
-    private MediaPlayer musicPlayer;
     private PauseTransition autoNavTimer;
     private boolean isNavigating = false;
+    private boolean hasRetried = false;
     private long screenLoadTime = 0L;
+
+    /**
+     * Globally halts and disposes any active video or audio players to release hardware decoders.
+     */
+    public static synchronized void cleanupActivePlayers() {
+        if (activeVideoPlayer != null) {
+            try {
+                activeVideoPlayer.stop();
+                activeVideoPlayer.dispose();
+                LOGGER.info("Active celebration video player successfully disposed.");
+            } catch (Throwable t) {
+                LOGGER.log(Level.WARNING, "Error disposing active video player: " + t.getMessage(), t);
+            }
+            activeVideoPlayer = null;
+        }
+    }
 
     @FXML
     public void initialize() {
         screenLoadTime = System.currentTimeMillis();
         populateOrderSummary();
+        bindMediaViewDimensions();
         playCelebrationVideo();
         setupKeyHandlers();
+    }
+
+    private void bindMediaViewDimensions() {
+        Platform.runLater(() -> {
+            if (mediaView != null && mainPane != null) {
+                mediaView.fitWidthProperty().bind(mainPane.widthProperty());
+                mediaView.fitHeightProperty().bind(mainPane.heightProperty());
+            }
+        });
     }
 
     private void populateOrderSummary() {
         try {
             Order order = OrderDetailsComponentController.getSelectedOrder();
-            if (order != null && orderTitleLabel != null) {
-                orderTitleLabel.setText(String.format("Order #%09d • %s Confirmed!",
-                        order.getOrderId(),
-                        order.getRentalMode() == com.example.car_rental_sys.model.RentalMode.WITH_DRIVER ? "Chauffeur" : "Self-Drive"));
+            if (order != null) {
+                if (orderTitleLabel != null) {
+                    orderTitleLabel.setText(String.format("Order #%09d • %s Confirmed!",
+                            order.getOrderId(),
+                            order.getRentalMode() == com.example.car_rental_sys.model.RentalMode.WITH_DRIVER ? "Chauffeur" : "Self-Drive"));
+                }
+                if (orderSubtitleLabel != null) {
+                    String carName = order.getVehicleModel();
+                    if (carName != null && !carName.isBlank()) {
+                        orderSubtitleLabel.setText(String.format("Your %s is reserved! Telemetry & dispatch route initialized.", carName));
+                    } else {
+                        orderSubtitleLabel.setText("Your supercar reservation is confirmed! Driver dispatch is in progress.");
+                    }
+                }
             }
         } catch (Exception ignored) {}
     }
 
+    private String resolveVideoSource(boolean useSecondary) {
+        String primaryName = useSecondary ? "video.mp4" : "video2.mp4";
+        String secondaryName = useSecondary ? "video2.mp4" : "video.mp4";
+
+        File[] candidateFiles = new File[]{
+                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/" + primaryName),
+                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/" + primaryName),
+                new File("target/classes/com/example/car_rental_sys/html/paySuccess/" + primaryName),
+                new File("Fleet_Managemnet_System/target/classes/com/example/car_rental_sys/html/paySuccess/" + primaryName),
+                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/" + secondaryName),
+                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/" + secondaryName)
+        };
+
+        for (File candidate : candidateFiles) {
+            if (candidate.exists() && candidate.isFile()) {
+                return candidate.toURI().toString();
+            }
+        }
+
+        URL res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/" + primaryName);
+        if (res == null) {
+            res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/" + secondaryName);
+        }
+        return res != null ? res.toExternalForm() : null;
+    }
+
     private void playCelebrationVideo() {
         try {
-            URL videoUrl = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video2.mp4");
-            if (videoUrl == null) {
-                videoUrl = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video.mp4");
-            }
+            cleanupActivePlayers();
 
-            if (videoUrl != null) {
-                Media media = new Media(videoUrl.toExternalForm());
-                videoPlayer = new MediaPlayer(media);
+            String mediaUri = resolveVideoSource(false);
+            if (mediaUri != null) {
+                Media media = new Media(mediaUri);
+                activeVideoPlayer = new MediaPlayer(media);
+                videoPlayer = activeVideoPlayer;
+
                 if (mediaView != null) {
                     mediaView.setMediaPlayer(videoPlayer);
                 }
                 videoPlayer.setVolume(1.0);
-                videoPlayer.setAutoPlay(false);
+                videoPlayer.setAutoPlay(true);
 
-                videoPlayer.setOnReady(() -> {
+                Runnable startPlayback = () -> {
                     LOGGER.info("Celebration video loaded successfully, starting playback with audio.");
                     if (videoPlayer != null) {
+                        videoPlayer.setVolume(1.0);
                         videoPlayer.seek(Duration.ZERO);
                         videoPlayer.play();
                     }
-                });
+                };
+
+                videoPlayer.setOnReady(startPlayback);
+                if (videoPlayer.getStatus() == MediaPlayer.Status.READY) {
+                    startPlayback.run();
+                }
 
                 videoPlayer.setOnEndOfMedia(() -> {
                     LOGGER.info("Celebration video playback ended.");
-                    if (videoPlayer != null && videoPlayer.getCurrentTime().toSeconds() < 2.0) {
-                        LOGGER.warning("Ignoring premature onEndOfMedia event");
-                        return;
-                    }
                     showCelebrationCard();
                     scheduleAutoNav(5);
                 });
 
                 videoPlayer.setOnError(() -> {
-                    LOGGER.warning("Native video playback encountered error: " +
+                    LOGGER.warning("Celebration video playback encountered error: " +
                             (videoPlayer.getError() != null ? videoPlayer.getError().getMessage() : "unknown"));
-                    fallbackToAudioAndCard();
+                    if (!hasRetried) {
+                        hasRetried = true;
+                        Platform.runLater(this::retryVideoPlayback);
+                    } else {
+                        showCelebrationCard();
+                        scheduleAutoNav(8);
+                    }
                 });
 
                 // Global maximum safety timer (22s) so customer is never stuck
@@ -108,29 +182,61 @@ public class PaySuccessPageController extends Controller {
                 autoNavTimer.setOnFinished(e -> handleViewOrders());
                 autoNavTimer.play();
             } else {
-                fallbackToAudioAndCard();
+                LOGGER.warning("Could not resolve celebration video source file.");
+                showCelebrationCard();
+                scheduleAutoNav(8);
             }
         } catch (Throwable t) {
             LOGGER.log(Level.WARNING, "Failed to initialize native video player: " + t.getMessage(), t);
-            fallbackToAudioAndCard();
+            if (!hasRetried) {
+                hasRetried = true;
+                Platform.runLater(this::retryVideoPlayback);
+            } else {
+                showCelebrationCard();
+                scheduleAutoNav(8);
+            }
         }
     }
 
-    private void fallbackToAudioAndCard() {
-        showCelebrationCard();
-
-        // Play celebration audio track fallback
+    private void retryVideoPlayback() {
         try {
-            URL musicUrl = getClass().getResource("/com/example/car_rental_sys/music/Good_Life-G_Eazy&Kehlani.mp3");
-            if (musicUrl != null) {
-                Media audioMedia = new Media(musicUrl.toExternalForm());
-                musicPlayer = new MediaPlayer(audioMedia);
-                musicPlayer.setVolume(0.9);
-                musicPlayer.play();
+            cleanupActivePlayers();
+            String fallbackUri = resolveVideoSource(true);
+            if (fallbackUri != null) {
+                Media media = new Media(fallbackUri);
+                activeVideoPlayer = new MediaPlayer(media);
+                videoPlayer = activeVideoPlayer;
+                if (mediaView != null) {
+                    mediaView.setMediaPlayer(videoPlayer);
+                }
+                videoPlayer.setAutoPlay(true);
+                videoPlayer.setVolume(1.0);
+                videoPlayer.setOnReady(() -> {
+                    if (videoPlayer != null) {
+                        videoPlayer.seek(Duration.ZERO);
+                        videoPlayer.play();
+                    }
+                });
+                if (videoPlayer.getStatus() == MediaPlayer.Status.READY) {
+                    videoPlayer.play();
+                }
+                videoPlayer.setOnEndOfMedia(() -> {
+                    showCelebrationCard();
+                    scheduleAutoNav(5);
+                });
+                videoPlayer.setOnError(() -> {
+                    showCelebrationCard();
+                    scheduleAutoNav(8);
+                });
+            } else {
+                showCelebrationCard();
+                scheduleAutoNav(8);
             }
-        } catch (Throwable ignored) {}
-
-        scheduleAutoNav(6);
+        } catch (Throwable t) {
+            LOGGER.log(Level.WARNING, "Retry celebration video failed: " + t.getMessage(), t);
+            showCelebrationCard();
+            scheduleAutoNav(8);
+        }
     }
 
     private void showCelebrationCard() {
@@ -175,22 +281,8 @@ public class PaySuccessPageController extends Controller {
             autoNavTimer.stop();
         }
 
-        // Clean up media players to release audio hardware and stop background sounds
-        if (videoPlayer != null) {
-            try {
-                videoPlayer.stop();
-                videoPlayer.dispose();
-            } catch (Throwable ignored) {}
-            videoPlayer = null;
-        }
-
-        if (musicPlayer != null) {
-            try {
-                musicPlayer.stop();
-                musicPlayer.dispose();
-            } catch (Throwable ignored) {}
-            musicPlayer = null;
-        }
+        // Clean up media players to release audio hardware
+        cleanupActivePlayers();
 
         // Session guard: Prevent verification dialog loop when returning to customer orders
         CustomerServiceController.hasPromptedVerificationThisSession = true;

@@ -59,6 +59,14 @@ public final class SceneManager {
             }
         }
 
+        // Terminate and release payment celebration video player whenever leaving pay success
+        if (!"paySuccessPage.fxml".equalsIgnoreCase(fxmlFileName)) {
+            try {
+                com.example.car_rental_sys.controllers.PaySuccessPageController.cleanupActivePlayers();
+            } catch (Throwable ignored) {
+            }
+        }
+
         try {
             String path = fxmlFileName.startsWith("/") ? fxmlFileName : FXML_BASE_PATH + fxmlFileName;
             URL resource = SceneManager.class.getResource(path);
