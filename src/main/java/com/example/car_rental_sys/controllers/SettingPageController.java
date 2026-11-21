@@ -7,7 +7,6 @@ import com.example.car_rental_sys.service.ServiceFactory;
 import com.example.car_rental_sys.ui_components.SwitchButton;
 import com.example.car_rental_sys.util.SceneManager;
 import javafx.fxml.FXML;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 
 import java.net.URL;
@@ -51,17 +50,9 @@ public class SettingPageController extends Controller {
 
     private void initBackBtn() {
         if (btnBackToMain != null) {
-            User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
-            if (currentUser != null && currentUser.getRole() == Role.DRIVER) {
-                btnBackToMain.setText("← Back to Workplace");
-            } else if (currentUser != null && currentUser.getRole() == Role.CUSTOMER) {
-                btnBackToMain.setText("← Back to Orders");
-            } else if (currentUser != null && currentUser.getRole() == Role.ADMIN) {
-                btnBackToMain.setText("← Back to Overview");
             if ("drivingModePage.fxml".equals(StatusContainer.settingsOrigin)) {
                 btnBackToMain.setText("← Back to Cockpit");
             } else {
-                btnBackToMain.setText("← Back");
                 User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
                 if (currentUser == null) {
                     currentUser = StatusContainer.currentUser;
@@ -78,7 +69,6 @@ public class SettingPageController extends Controller {
             }
 
             btnBackToMain.setOnAction(e -> handleBackNavigation());
-            btnBackToMain.setOnMouseClicked(e -> handleBackNavigation());
         }
     }
 
