@@ -44,8 +44,9 @@ public class PaySuccessPageController extends Controller {
 
     private MediaPlayer videoPlayer;
     private PauseTransition autoNavTimer;
+    private PauseTransition videoEndTimer;
     private boolean isNavigating = false;
-    private boolean hasRetried = false;
+    private boolean cardShown = false;
     private long screenLoadTime = 0L;
 
     /**
@@ -67,19 +68,19 @@ public class PaySuccessPageController extends Controller {
     @FXML
     public void initialize() {
         screenLoadTime = System.currentTimeMillis();
+        cardShown = false;
+        if (celebrationCard != null) {
+            celebrationCard.setVisible(false);
+            celebrationCard.setOpacity(0.0);
+        }
+        if (mediaView != null) {
+            mediaView.setFitWidth(1280.0);
+            mediaView.setFitHeight(832.0);
+            mediaView.setPreserveRatio(true);
+        }
         populateOrderSummary();
-        bindMediaViewDimensions();
         playCelebrationVideo();
         setupKeyHandlers();
-    }
-
-    private void bindMediaViewDimensions() {
-        Platform.runLater(() -> {
-            if (mediaView != null && mainPane != null) {
-                mediaView.fitWidthProperty().bind(mainPane.widthProperty());
-                mediaView.fitHeightProperty().bind(mainPane.heightProperty());
-            }
-        });
     }
 
     private void populateOrderSummary() {
@@ -103,28 +104,26 @@ public class PaySuccessPageController extends Controller {
         } catch (Exception ignored) {}
     }
 
-    private String resolveVideoSource(boolean useSecondary) {
-        String primaryName = useSecondary ? "video.mp4" : "video2.mp4";
-        String secondaryName = useSecondary ? "video2.mp4" : "video.mp4";
-
+    private String resolveVideoSource() {
         File[] candidateFiles = new File[]{
-                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/" + primaryName),
-                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/" + primaryName),
-                new File("target/classes/com/example/car_rental_sys/html/paySuccess/" + primaryName),
-                new File("Fleet_Managemnet_System/target/classes/com/example/car_rental_sys/html/paySuccess/" + primaryName),
-                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/" + secondaryName),
-                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/" + secondaryName)
+                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/video2.mp4"),
+                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/video2.mp4"),
+                new File("Fleet_Managemnet_System/target/classes/com/example/car_rental_sys/html/paySuccess/video2.mp4"),
+                new File("target/classes/com/example/car_rental_sys/html/paySuccess/video2.mp4"),
+                new File("Fleet_Managemnet_System/src/main/resources/com/example/car_rental_sys/html/paySuccess/video.mp4"),
+                new File("src/main/resources/com/example/car_rental_sys/html/paySuccess/video.mp4")
         };
 
         for (File candidate : candidateFiles) {
             if (candidate.exists() && candidate.isFile()) {
+                LOGGER.info("Found celebration video on disk: " + candidate.getAbsolutePath());
                 return candidate.toURI().toString();
             }
         }
 
-        URL res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/" + primaryName);
+        URL res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video2.mp4");
         if (res == null) {
-            res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/" + secondaryName);
+            res = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video.mp4");
         }
         return res != null ? res.toExternalForm() : null;
     }
@@ -133,8 +132,9 @@ public class PaySuccessPageController extends Controller {
         try {
             cleanupActivePlayers();
 
-            String mediaUri = resolveVideoSource(false);
+            String mediaUri = resolveVideoSource();
             if (mediaUri != null) {
+                LOGGER.info("Initializing Media with URI: " + mediaUri);
                 Media media = new Media(mediaUri);
                 activeVideoPlayer = new MediaPlayer(media);
                 videoPlayer = activeVideoPlayer;
@@ -146,8 +146,11 @@ public class PaySuccessPageController extends Controller {
                 videoPlayer.setAutoPlay(true);
 
                 Runnable startPlayback = () -> {
-                    LOGGER.info("Celebration video loaded successfully, starting playback with audio.");
+                    LOGGER.info("Celebration video onReady, starting playback with full volume.");
                     if (videoPlayer != null) {
+                        if (mediaView != null) {
+                            mediaView.setMediaPlayer(videoPlayer);
+                        }
                         videoPlayer.setVolume(1.0);
                         videoPlayer.seek(Duration.ZERO);
                         videoPlayer.play();
@@ -159,8 +162,15 @@ public class PaySuccessPageController extends Controller {
                     startPlayback.run();
                 }
 
+                // Guarded end-of-media: do not accept premature end events before video actually runs
                 videoPlayer.setOnEndOfMedia(() -> {
-                    LOGGER.info("Celebration video playback ended.");
+                    double currentSec = videoPlayer.getCurrentTime().toSeconds();
+                    LOGGER.info("Celebration video onEndOfMedia at " + currentSec + "s");
+                    if (currentSec < 10.0) {
+                        LOGGER.warning("Ignoring premature onEndOfMedia event at " + currentSec + "s");
+                        videoPlayer.play();
+                        return;
+                    }
                     showCelebrationCard();
                     scheduleAutoNav(5);
                 });
@@ -168,17 +178,18 @@ public class PaySuccessPageController extends Controller {
                 videoPlayer.setOnError(() -> {
                     LOGGER.warning("Celebration video playback encountered error: " +
                             (videoPlayer.getError() != null ? videoPlayer.getError().getMessage() : "unknown"));
-                    if (!hasRetried) {
-                        hasRetried = true;
-                        Platform.runLater(this::retryVideoPlayback);
-                    } else {
-                        showCelebrationCard();
-                        scheduleAutoNav(8);
-                    }
                 });
 
-                // Global maximum safety timer (22s) so customer is never stuck
-                autoNavTimer = new PauseTransition(Duration.seconds(22));
+                // Timed reveal: The video is 16.06s. At 16.2s, reveal the card cleanly
+                videoEndTimer = new PauseTransition(Duration.seconds(16.2));
+                videoEndTimer.setOnFinished(e -> {
+                    showCelebrationCard();
+                    scheduleAutoNav(5);
+                });
+                videoEndTimer.play();
+
+                // Global maximum safety timer (25s) so customer is never stuck
+                autoNavTimer = new PauseTransition(Duration.seconds(25));
                 autoNavTimer.setOnFinished(e -> handleViewOrders());
                 autoNavTimer.play();
             } else {
@@ -188,60 +199,17 @@ public class PaySuccessPageController extends Controller {
             }
         } catch (Throwable t) {
             LOGGER.log(Level.WARNING, "Failed to initialize native video player: " + t.getMessage(), t);
-            if (!hasRetried) {
-                hasRetried = true;
-                Platform.runLater(this::retryVideoPlayback);
-            } else {
-                showCelebrationCard();
-                scheduleAutoNav(8);
-            }
-        }
-    }
-
-    private void retryVideoPlayback() {
-        try {
-            cleanupActivePlayers();
-            String fallbackUri = resolveVideoSource(true);
-            if (fallbackUri != null) {
-                Media media = new Media(fallbackUri);
-                activeVideoPlayer = new MediaPlayer(media);
-                videoPlayer = activeVideoPlayer;
-                if (mediaView != null) {
-                    mediaView.setMediaPlayer(videoPlayer);
-                }
-                videoPlayer.setAutoPlay(true);
-                videoPlayer.setVolume(1.0);
-                videoPlayer.setOnReady(() -> {
-                    if (videoPlayer != null) {
-                        videoPlayer.seek(Duration.ZERO);
-                        videoPlayer.play();
-                    }
-                });
-                if (videoPlayer.getStatus() == MediaPlayer.Status.READY) {
-                    videoPlayer.play();
-                }
-                videoPlayer.setOnEndOfMedia(() -> {
-                    showCelebrationCard();
-                    scheduleAutoNav(5);
-                });
-                videoPlayer.setOnError(() -> {
-                    showCelebrationCard();
-                    scheduleAutoNav(8);
-                });
-            } else {
-                showCelebrationCard();
-                scheduleAutoNav(8);
-            }
-        } catch (Throwable t) {
-            LOGGER.log(Level.WARNING, "Retry celebration video failed: " + t.getMessage(), t);
             showCelebrationCard();
             scheduleAutoNav(8);
         }
     }
 
     private void showCelebrationCard() {
+        if (cardShown) return;
+        cardShown = true;
+
         Platform.runLater(() -> {
-            if (celebrationCard != null && !celebrationCard.isVisible()) {
+            if (celebrationCard != null) {
                 celebrationCard.setOpacity(0.0);
                 celebrationCard.setScaleX(0.85);
                 celebrationCard.setScaleY(0.85);
@@ -279,6 +247,9 @@ public class PaySuccessPageController extends Controller {
 
         if (autoNavTimer != null) {
             autoNavTimer.stop();
+        }
+        if (videoEndTimer != null) {
+            videoEndTimer.stop();
         }
 
         // Clean up media players to release audio hardware
