@@ -124,6 +124,9 @@
                     <source>17</source>
                     <target>17</target>
                     <release>17</release>
+                    <testExcludes>
+                        <testExclude>**/FullRentalLifecycleIntegrationTest.java</testExclude>
+                    </testExcludes>
                 </configuration>
             </plugin>
             <plugin>

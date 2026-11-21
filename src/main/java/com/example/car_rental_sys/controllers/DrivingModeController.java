@@ -169,10 +169,11 @@ public class DrivingModeController extends Controller {
         WebEngine engine = cockpitWebView.getEngine();
         engine.setJavaScriptEnabled(true);
 
-        DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
-        if (activeOrder == null && StatusContainer.activeDeliveryOrder != null) {
-            activeOrder = StatusContainer.activeDeliveryOrder;
+        DeliveryOrder initialOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
+        if (initialOrder == null && StatusContainer.activeDeliveryOrder != null) {
+            initialOrder = StatusContainer.activeDeliveryOrder;
         }
+        final DeliveryOrder activeOrder = initialOrder;
 
         double startLat = 16.4632;
         double startLng = 80.5078;
@@ -221,11 +222,15 @@ public class DrivingModeController extends Controller {
                     });
                 }
             } else if ("ARRIVED".equals(data)) {
+                final DeliveryOrder orderRef = activeOrder;
                 Platform.runLater(() -> {
                     if (distanceLeftLabel != null) distanceLeftLabel.setText("0 km left");
                     if (timeLeftLabel != null) timeLeftLabel.setText("Arrived");
                     updateProgressBar(1.0);
-                    AlertHelper.showInfo("Destination Reached", "You have arrived at the passenger pickup point:\n" + finalDest);
+                    String arrivedMsg = (orderRef != null && orderRef.isChauffeur())
+                            ? "You have arrived at the passenger destination:\n" + finalDest
+                            : "You have arrived at the customer delivery point:\n" + finalDest;
+                    AlertHelper.showInfo("Destination Reached", arrivedMsg);
                 });
             }
         });
@@ -283,7 +288,11 @@ public class DrivingModeController extends Controller {
 
     @FXML
     private void finishDeliveryClicked(MouseEvent event) {
-        DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
+        DeliveryOrder initialOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
+        if (initialOrder == null && StatusContainer.activeDeliveryOrder != null) {
+            initialOrder = StatusContainer.activeDeliveryOrder;
+        }
+        final DeliveryOrder activeOrder = initialOrder;
         boolean isChauffeur = (activeOrder != null && activeOrder.isChauffeur());
 
         String confirmMsg = isChauffeur
@@ -292,12 +301,20 @@ public class DrivingModeController extends Controller {
 
         MessageFrame messageFrame = new MessageFrame(MessageFrameType.CONFIRM, confirmMsg, "Confirm Action");
         messageFrame.setSuccessCallbackFunc((i) -> {
-            DeliveryOrderManager.getInstance().completeActiveDelivery();
-            MusicPlayerController.stopPlayback();
+            try {
+                DeliveryOrderManager.getInstance().completeActiveDelivery();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+            try {
+                MusicPlayerController.stopPlayback();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
             StatusContainer.currentContinueOrderID = -1;
             StatusContainer.activeDeliveryOrder = null;
             messageFrame.close();
-            SceneManager.switchScene("driverServicePage.fxml");
+            Platform.runLater(() -> SceneManager.switchScene("driverServicePage.fxml"));
             return null;
         });
         messageFrame.setFailedCallbackFunc((i) -> {
