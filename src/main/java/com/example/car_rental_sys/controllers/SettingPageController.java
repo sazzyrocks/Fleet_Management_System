@@ -58,8 +58,23 @@ public class SettingPageController extends Controller {
                 btnBackToMain.setText("← Back to Orders");
             } else if (currentUser != null && currentUser.getRole() == Role.ADMIN) {
                 btnBackToMain.setText("← Back to Overview");
+            if ("drivingModePage.fxml".equals(StatusContainer.settingsOrigin)) {
+                btnBackToMain.setText("← Back to Cockpit");
             } else {
                 btnBackToMain.setText("← Back");
+                User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+                if (currentUser == null) {
+                    currentUser = StatusContainer.currentUser;
+                }
+                if (currentUser != null && currentUser.getRole() == Role.DRIVER) {
+                    btnBackToMain.setText("← Back to Workplace");
+                } else if (currentUser != null && currentUser.getRole() == Role.CUSTOMER) {
+                    btnBackToMain.setText("← Back to Orders");
+                } else if (currentUser != null && currentUser.getRole() == Role.ADMIN) {
+                    btnBackToMain.setText("← Back to Overview");
+                } else {
+                    btnBackToMain.setText("← Back");
+                }
             }
 
             btnBackToMain.setOnAction(e -> handleBackNavigation());
@@ -69,6 +84,9 @@ public class SettingPageController extends Controller {
 
     private void initTheme() {
         User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (currentUser == null) {
+            currentUser = StatusContainer.currentUser;
+        }
         if (currentUser != null && currentUser.getRole() == Role.CUSTOMER && settingPane != null) {
             URL darkCss = getClass().getResource("/com/example/car_rental_sys/style/settingComponentDark.css");
             if (darkCss != null) {
@@ -86,7 +104,16 @@ public class SettingPageController extends Controller {
     }
 
     private void handleBackNavigation() {
+        if ("drivingModePage.fxml".equals(StatusContainer.settingsOrigin)) {
+            StatusContainer.settingsOrigin = null;
+            SceneManager.switchScene("drivingModePage.fxml");
+            return;
+        }
+
         User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
+        if (currentUser == null) {
+            currentUser = StatusContainer.currentUser;
+        }
         Role role = currentUser != null ? currentUser.getRole() : null;
 
         if (role == Role.DRIVER) {

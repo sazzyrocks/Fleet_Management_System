@@ -86,6 +86,12 @@ public class DrivingModeController extends Controller {
     private Label climateTempLabel;
 
     @FXML
+    private Pane tempUpBtn;
+
+    @FXML
+    private Pane tempDownBtn;
+
+    @FXML
     private Pane seatCardPane;
     @FXML
     private Pane seatIconBox;
@@ -93,6 +99,10 @@ public class DrivingModeController extends Controller {
     private Label seatPresetLabel;
     @FXML
     private Label seatAngleLabel;
+    @FXML
+    private Pane seatUpBtn;
+    @FXML
+    private Pane seatDownBtn;
 
     @FXML
     private Pane ambientCardPane;
@@ -102,6 +112,8 @@ public class DrivingModeController extends Controller {
     private Label ambientModeLabel;
     @FXML
     private Label ambientColorNameLabel;
+    @FXML
+    private Pane ambientCycleBtn;
 
     // Interactive Cockpit State
     private int currentTemp = 24;
@@ -297,6 +309,7 @@ public class DrivingModeController extends Controller {
 
     @FXML
     private void backToSettingPage(MouseEvent event) {
+        StatusContainer.settingsOrigin = "drivingModePage.fxml";
         SceneManager.switchScene("SettingPage.fxml");
     }
 
