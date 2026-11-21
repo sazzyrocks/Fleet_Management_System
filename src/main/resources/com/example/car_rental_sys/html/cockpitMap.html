@@ -294,17 +294,16 @@
     }
 
     function fallbackRoute() {
-      routeCoords = [
-        [startLat, startLng],
-        [16.4750, 80.5180],
-        [16.4880, 80.5310],
-        [16.4980, 80.5400],
-        [16.5040, 80.5650],
-        [16.5100, 80.5850],
-        [16.5070, 80.6050],
-        [16.5120, 80.6120],
-        [destLat, destLng]
-      ];
+      routeCoords = [];
+      const steps = 14;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const curve = Math.sin(t * Math.PI) * 0.005;
+        const lat = startLat + (destLat - startLat) * t + curve;
+        const lng = startLng + (destLng - startLng) * t - curve;
+        routeCoords.push([lat, lng]);
+      }
+      totalDistKm = parseFloat((Math.hypot(destLat - startLat, destLng - startLng) * 111).toFixed(1));
       renderPolyline();
     }
 

@@ -68,9 +68,7 @@
                <Image url="@../image/UI/closeIcon.png" />
             </ImageView>
          </Pane>
-         <ImageView fx:id="carImageView" fitHeight="125.0" fitWidth="181.0" layoutX="58.0" layoutY="332.0" pickOnBounds="true" preserveRatio="true">
-            <Image url="@../image/cars/Chevrolet_Corvette_ZR1.png" />
-         </ImageView>
+         <ImageView fx:id="carImageView" fitHeight="125.0" fitWidth="181.0" layoutX="58.0" layoutY="332.0" pickOnBounds="true" preserveRatio="true" />
          <ImageView fitHeight="40.0" fitWidth="40.0" layoutX="218.0" layoutY="483.0" pickOnBounds="true" preserveRatio="true">
             <Image url="@../image/UI/speed-black.png" />
          </ImageView>
@@ -80,17 +78,17 @@
          <ImageView fitHeight="40.0" fitWidth="40.0" layoutX="128.0" layoutY="483.0" pickOnBounds="true" preserveRatio="true">
             <Image url="@../image/UI/power-black.png" />
          </ImageView>
-         <Label fx:id="seatsLabel" layoutX="54.0" layoutY="539.0" text="4">
+         <Label fx:id="seatsLabel" layoutX="54.0" layoutY="539.0" text="--">
             <font>
                <Font size="14.0" />
             </font>
          </Label>
-         <Label fx:id="powerLabel" layoutX="133.0" layoutY="539.0" text="4.0 L">
+         <Label fx:id="powerLabel" layoutX="133.0" layoutY="539.0" text="--">
             <font>
                <Font size="14.0" />
             </font>
          </Label>
-         <Label fx:id="speedLabel" layoutX="206.0" layoutY="539.0" text="330 km/h">
+         <Label fx:id="speedLabel" layoutX="206.0" layoutY="539.0" text="--">
             <font>
                <Font size="14.0" />
             </font>

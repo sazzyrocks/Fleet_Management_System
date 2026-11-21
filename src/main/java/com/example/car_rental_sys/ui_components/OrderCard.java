@@ -58,16 +58,6 @@ public class OrderCard extends Pane {
         plateLabel.setFont(Font.font("System", 12));
         plateLabel.setStyle("-fx-text-fill: #86909c;");
 
-        // 2B. Optional [DEMO] badge if fallback data
-        Label demoBadge = null;
-        if (order.isDemo()) {
-            demoBadge = new Label("DEMO");
-            demoBadge.setLayoutX(100);
-            demoBadge.setLayoutY(34);
-            demoBadge.setFont(Font.font("System", FontWeight.BOLD, 9));
-            demoBadge.setStyle("-fx-background-color: rgba(255, 125, 0, 0.18); -fx-text-fill: #ff7d00; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
-        }
-
         // 3. Eye / Dismiss Button
         Pane hideBtn = createActionButton("/com/example/car_rental_sys/image/UI/hide.png", "#78909c", 172, 12);
         hideBtn.setOnMouseClicked(e -> {
@@ -144,9 +134,6 @@ public class OrderCard extends Pane {
         }
 
         getChildren().addAll(modelLabel, plateLabel, hideBtn, chooseBtn, carThumbBox, modeBadge, startDateLabel, toLabel, endDateLabel);
-        if (demoBadge != null) {
-            getChildren().add(demoBadge);
-        }
 
         // Click on card selects this order
         setOnMouseClicked(e -> {

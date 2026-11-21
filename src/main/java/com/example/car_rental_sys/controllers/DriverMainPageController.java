@@ -22,6 +22,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 
@@ -143,22 +144,21 @@ public class DriverMainPageController extends Controller {
 
         // 1. Determine active mission or initial selected order
         DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
-        if (activeOrder == null && StatusContainer.activeDeliveryOrder != null) {
-            activeOrder = StatusContainer.activeDeliveryOrder;
-        }
-
-        if (activeOrder != null) {
+        if (activeOrder != null && DeliveryOrderManager.getInstance().hasActiveDispatch()
+                && !DeliveryOrderManager.getInstance().isOrderCompleted(activeOrder.getOrderId())) {
             currentSelectedOrder = activeOrder;
             initWebview();
             showActiveDispatchMode(activeOrder);
         } else {
+            // Clean standby / selection mode
+            DeliveryOrderManager.getInstance().setActiveDispatchOrder(null);
+            StatusContainer.activeDeliveryOrder = null;
+            StatusContainer.currentContinueOrderID = -1;
+
             List<DeliveryOrder> orders = DeliveryOrderManager.getInstance().getAvailableOrders();
-            if (orders.isEmpty()) {
-                DeliveryOrderManager.getInstance().resetAll();
-                orders = DeliveryOrderManager.getInstance().getAvailableOrders();
-            }
-            if (!orders.isEmpty()) {
-                currentSelectedOrder = orders.get(0);
+            currentSelectedOrder = !orders.isEmpty() ? orders.get(0) : null;
+            if (currentSelectedOrder != null) {
+                StatusContainer.activeDeliveryOrder = currentSelectedOrder;
             }
             initWebview();
             showOrderSelectionMode();
@@ -236,13 +236,34 @@ public class DriverMainPageController extends Controller {
         currentOrderCards.clear();
 
         List<DeliveryOrder> orders = DeliveryOrderManager.getInstance().getAvailableOrders();
+
         if (orders.isEmpty()) {
-            DeliveryOrderManager.getInstance().resetAll();
-            orders = DeliveryOrderManager.getInstance().getAvailableOrders();
+            currentSelectedOrder = null;
+            HBox emptyBox = new HBox(14);
+            emptyBox.setAlignment(Pos.CENTER);
+            emptyBox.setPadding(new Insets(18, 24, 18, 24));
+            emptyBox.setStyle("-fx-background-color: #12141a; -fx-background-radius: 12; -fx-border-color: #282c35; -fx-border-radius: 12;");
+
+            Label checkIcon = new Label("✓");
+            checkIcon.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #defe00;");
+
+            Label title = new Label("All Caught Up — No pending vehicle dispatches right now.");
+            title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
+
+            Label sub = new Label("You are currently on standby. Real-time customer bookings will appear here automatically.");
+            sub.setStyle("-fx-font-size: 11px; -fx-text-fill: #9aa0a6;");
+
+            VBox textContainer = new VBox(3, title, sub);
+            emptyBox.getChildren().addAll(checkIcon, textContainer);
+
+            scrollPane.setContent(emptyBox);
+            scrollPane.setFitToHeight(true);
+            updateSidebarInfo(null);
+            return;
         }
 
-        if (currentSelectedOrder == null && !orders.isEmpty()) {
-            currentSelectedOrder = orders.get(0);
+        if (currentSelectedOrder != null && orders.stream().noneMatch(o -> o.getOrderId() == currentSelectedOrder.getOrderId())) {
+            currentSelectedOrder = null;
         }
 
         HBox container = new HBox(16);
@@ -266,12 +287,16 @@ public class DriverMainPageController extends Controller {
 
         if (currentSelectedOrder != null) {
             updateSidebarInfo(currentSelectedOrder);
+        } else {
+            updateSidebarInfo(null);
         }
     }
 
     public void selectOrder(DeliveryOrder order) {
         if (order == null) return;
         this.currentSelectedOrder = order;
+        StatusContainer.activeDeliveryOrder = order;
+        DeliveryOrderManager.getInstance().setActiveDispatchOrder(order);
 
         for (OrderCard card : currentOrderCards) {
             card.setSelected(card.getOrder().getOrderId() == order.getOrderId());
@@ -333,6 +358,19 @@ public class DriverMainPageController extends Controller {
     }
 
     private void updateSidebarInfo(DeliveryOrder order) {
+        if (order == null) {
+            if (renterName != null) renterName.setText("Fleet Standby");
+            if (renterPost != null) renterPost.setText("No Active Mission");
+            if (carNumberLabel != null) carNumberLabel.setText("--");
+            if (seatsLabel != null) seatsLabel.setText("--");
+            if (powerLabel != null) powerLabel.setText("--");
+            if (speedLabel != null) speedLabel.setText("--");
+            if (startLabel != null) startLabel.setText("SRM AP Fleet Hub");
+            if (destinationLabel != null) destinationLabel.setText("Awaiting New Orders");
+            if (carImageView != null) carImageView.setImage(null);
+            return;
+        }
+
         if (renterName != null) {
             String nameText = order.getRenterName();
             if (order.isDemo()) {

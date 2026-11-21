@@ -12,8 +12,11 @@ import com.example.car_rental_sys.model.VehicleStatus;
 import com.example.car_rental_sys.util.EnvConfig;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Enterprise In-Memory & Database Delivery Order Coordinator.
@@ -24,10 +27,11 @@ public class DeliveryOrderManager {
 
     private static volatile DeliveryOrderManager instance;
     private final List<DeliveryOrder> availableOrders = new ArrayList<>();
+    private final Set<Integer> completedOrderIds = Collections.synchronizedSet(new HashSet<>());
     private DeliveryOrder activeDispatchOrder = null;
 
     private DeliveryOrderManager() {
-        seedInitialDeliveryFleet();
+        availableOrders.clear();
     }
 
     public static DeliveryOrderManager getInstance() {
@@ -42,110 +46,113 @@ public class DeliveryOrderManager {
     }
 
     /**
-     * Seeds initial delivery fleet matching realistic local Andhra Pradesh hubs.
-     * Each order is paired with a specific client and direct contact number.
+     * Registers a new customer booking dynamically into the driver's dispatch queue.
      */
-    private void seedInitialDeliveryFleet() {
-        availableOrders.clear();
-
-        String name1 = EnvConfig.get("TEST_CLIENT_NAME_1", "SAZAL GOREY");
-        String phone1 = EnvConfig.get("TEST_CLIENT_PHONE_1", "+91 93463 89758");
-
-        String name2 = EnvConfig.get("TEST_CLIENT_NAME_2", "Arjun Rao");
-        String phone2 = EnvConfig.get("TEST_CLIENT_PHONE_2", "+91 98765 00002");
-
-        String name3 = EnvConfig.get("TEST_CLIENT_NAME_3", "Priya Patel");
-        String phone3 = EnvConfig.get("TEST_CLIENT_PHONE_3", "+91 98765 00003");
-
-        String name4 = EnvConfig.get("TEST_CLIENT_NAME_4", "Rajesh Kumar");
-        String phone4 = EnvConfig.get("TEST_CLIENT_PHONE_4", "+91 98765 00004");
-
-        String name5 = EnvConfig.get("TEST_CLIENT_NAME_5", "Ananya Reddy");
-        String phone5 = EnvConfig.get("TEST_CLIENT_PHONE_5", "+91 98765 00005");
-
-        // 1. Porsche 718 (Blue) - Demo Self-Drive
-        DeliveryOrder o1 = new DeliveryOrder(
-                101, "ORD-2026-101",
-                "Porsche_718", "5KFC102",
-                name1, "[DEMO] CEO VIP Client", "/com/example/car_rental_sys/image/avatar/1.png",
-                "2 Seats", "4.0 L Twin-Turbo", "328 km/h",
-                "SRM University-AP, Amaravati", 16.4632, 80.5078,
-                "Vijayawada Junction (BZA Hub)", 16.5175, 80.6200,
-                "2026-11-08", "2026-11-15",
-                "#0052d4", "#4364f7",
-                phone1
-        );
-        o1.setDemo(true);
-        o1.setRentalMode(RentalMode.SELF_DRIVE);
-        availableOrders.add(o1);
-
-        // 2. Ferrari SF90 Spider (Golden Yellow) - Demo With Driver (Chauffeur)
-        DeliveryOrder o2 = new DeliveryOrder(
-                102, "ORD-2026-102",
-                "Ferrari_SF90_Spider", "5VD4060",
-                name2, "[DEMO] VIP3 Member", "/com/example/car_rental_sys/image/avatar/2.png",
-                "2 Seats", "4.0 L V8 Hybrid", "340 km/h",
-                "Guntur Central Railway Terminal", 16.2970, 80.4430,
-                "Mangalagiri AIIMS Hospital", 16.4420, 80.5680,
-                "2026-11-10", "2026-11-20",
-                "#f7971e", "#ffd200",
-                phone2
-        );
-        o2.setDemo(true);
-        o2.setRentalMode(RentalMode.WITH_DRIVER);
-        availableOrders.add(o2);
-
-        // 3. Chevrolet Corvette ZR1 (White/Red) - Demo Self-Drive
-        DeliveryOrder o3 = new DeliveryOrder(
-                103, "ORD-2026-103",
-                "Chevrolet_Corvette_ZR1", "MJA 230",
-                name3, "[DEMO] Gold VIP Client", "/com/example/car_rental_sys/image/avatar/3.png",
-                "4 Seats", "6.2 L Supercharged V8", "330 km/h",
-                "Vijayawada Airport (VGA)", 16.5304, 80.7968,
-                "Amaravati Government Secretariat", 16.5130, 80.5180,
-                "2026-11-12", "2026-11-25",
-                "#cb2d3e", "#ef473a",
-                phone3
-        );
-        o3.setDemo(true);
-        o3.setRentalMode(RentalMode.SELF_DRIVE);
-        availableOrders.add(o3);
-
-        // 4. Audi R8 (Green) - Demo With Driver (Chauffeur)
-        DeliveryOrder o4 = new DeliveryOrder(
-                104, "ORD-2026-104",
-                "Audi_R8", "AP 39 R8 1001",
-                name4, "[DEMO] Fleet Partner", "/com/example/car_rental_sys/image/avatar/4.png",
-                "2 Seats", "5.2 L V10 Performance", "330 km/h",
-                "SRM AP Campus", 16.4632, 80.5078,
-                "Tadepalle Bypass Junction", 16.4820, 80.6010,
-                "2026-11-14", "2026-11-28",
-                "#11998e", "#38ef7d",
-                phone4
-        );
-        o4.setDemo(true);
-        o4.setRentalMode(RentalMode.WITH_DRIVER);
-        availableOrders.add(o4);
-
-        // 5. Huracan EVI (Black/Gold) - Demo Self-Drive
-        DeliveryOrder o5 = new DeliveryOrder(
-                105, "ORD-2026-105",
-                "Huracan_EVI", "WC 8888 D",
-                name5, "[DEMO] VIP Elite Partner", "/com/example/car_rental_sys/image/avatar/5.png",
-                "2 Seats", "5.2 L V10 Naturally Aspirated", "325 km/h",
-                "Mangalagiri AIIMS Complex", 16.4420, 80.5680,
-                "Vijayawada Junction (BZA Hub)", 16.5175, 80.6200,
-                "2026-11-15", "2026-11-30",
-                "#232526", "#414345",
-                phone5
-        );
-        o5.setDemo(true);
-        o5.setRentalMode(RentalMode.SELF_DRIVE);
-        availableOrders.add(o5);
+    public synchronized void registerNewBooking(Order o) {
+        if (o == null) return;
+        DeliveryOrder dOrder = convertOrderToDeliveryOrder(o);
+        if (dOrder != null) {
+            availableOrders.removeIf(existing -> existing.getOrderId() == dOrder.getOrderId());
+            availableOrders.add(0, dOrder);
+        }
     }
 
     /**
-     * Returns combined list of real MySQL customer bookings plus active seeded delivery assignments.
+     * Converts a domain Order (from MySQL or StatusContainer) into a rich DeliveryOrder for drivers.
+     */
+    public DeliveryOrder convertOrderToDeliveryOrder(Order o) {
+        if (o == null) return null;
+        try {
+            var userDao = DAOFactory.getInstance().getUserDAO();
+            var vehicleDao = DAOFactory.getInstance().getVehicleDAO();
+
+            Optional<User> userOpt = userDao.findById(o.getCustomerId());
+            Optional<Vehicle> vehicleOpt = vehicleDao.findById(o.getVehicleId());
+
+            String rName = userOpt.map(User::getFullName).filter(n -> !n.isBlank()).orElse("Valued Customer");
+            String rPhone = userOpt.map(User::getPhone).filter(p -> !p.isBlank()).orElse("+91 93463 89758");
+            String rAvatar = userOpt.map(User::getAvatarPath).filter(a -> a != null && !a.isBlank()).orElse("/com/example/car_rental_sys/image/avatar/1.png");
+
+            String cModel = vehicleOpt.map(v -> v.getModel().replace(" ", "_")).orElse("Porsche_718");
+            String cPlate = vehicleOpt.map(Vehicle::getLicensePlate).orElse("AP 39 DL 1001");
+            String seats = vehicleOpt.map(v -> (v.getSeats() != null ? v.getSeats() : 4) + " Seats").orElse("4 Seats");
+            String power = vehicleOpt.map(v -> (v.getFuelType() != null ? v.getFuelType().name() : "Petrol") + " • " + (v.getTransmission() != null ? v.getTransmission().name() : "Auto")).orElse("3.0 L Turbo");
+            String speed = "280 km/h";
+
+            boolean isChauffeur = (o.getRentalMode() == com.example.car_rental_sys.model.RentalMode.WITH_DRIVER);
+            String startLoc;
+            double sLat, sLng;
+            String destLoc;
+            double dLat, dLng;
+
+            if (isChauffeur) {
+                // Chauffeur Mode (Driver ke sath): Pick up client at client pickup point and drive to destination/airport
+                startLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
+                        ? o.getPickupLocation() : "Guntur Central";
+                double[] sCoords = resolveCoordinates(startLoc, 16.3007, 80.4639);
+                sLat = sCoords[0];
+                sLng = sCoords[1];
+
+                if (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc)) {
+                    destLoc = o.getReturnLocation();
+                } else {
+                    destLoc = "Vijayawada Junction (BZA Hub)";
+                }
+                double[] dCoords = resolveCoordinates(destLoc, 16.5175, 80.6200);
+                dLat = dCoords[0];
+                dLng = dCoords[1];
+            } else {
+                // Self-Drive Mode (Bas drop / Vehicle Delivery): Driver dispatches car from Fleet Depot to Customer's chosen handover point
+                startLoc = "SRM AP Fleet Hub, Amaravati";
+                sLat = 16.4632;
+                sLng = 80.5078;
+
+                destLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
+                        ? o.getPickupLocation() : "Guntur Central";
+                if (destLoc.toLowerCase().contains("srm") || destLoc.toLowerCase().contains("amaravati")) {
+                    destLoc = (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc))
+                            ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)";
+                }
+                double[] dCoords = resolveCoordinates(destLoc, 16.3007, 80.4639);
+                dLat = dCoords[0];
+                dLng = dCoords[1];
+            }
+
+            String sDate = o.getStartDate() != null ? o.getStartDate().toLocalDate().toString() : "2026-11-21";
+            String eDate = o.getEndDate() != null ? o.getEndDate().toLocalDate().toString() : "2026-11-25";
+
+            DeliveryOrder dOrder = new DeliveryOrder(
+                    o.getOrderId(),
+                    o.getOrderNumber() != null ? o.getOrderNumber() : ("ORD-2026-" + o.getOrderId()),
+                    cModel,
+                    cPlate,
+                    rName,
+                    isChauffeur ? "Chauffeur Ride Client" : "Self-Drive Rental Client",
+                    rAvatar,
+                    seats,
+                    power,
+                    speed,
+                    startLoc,
+                    sLat, sLng,
+                    destLoc,
+                    dLat, dLng,
+                    sDate,
+                    eDate,
+                    isChauffeur ? "#722ED1" : "#0052d4",
+                    isChauffeur ? "#9254de" : "#4364f7",
+                    rPhone
+            );
+            dOrder.setRentalMode(o.getRentalMode());
+            dOrder.setDemo(false);
+            return dOrder;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns list of real customer bookings from MySQL database or active customer checkout.
+     * Purely dynamic: only genuine customer orders are shown.
      */
     public synchronized List<DeliveryOrder> getAvailableOrders() {
         List<DeliveryOrder> result = new ArrayList<>();
@@ -153,9 +160,6 @@ public class DeliveryOrderManager {
         // 1. Fetch real customer bookings from MySQL database if available
         try {
             var orderDao = DAOFactory.getInstance().getOrderDAO();
-            var userDao = DAOFactory.getInstance().getUserDAO();
-            var vehicleDao = DAOFactory.getInstance().getVehicleDAO();
-
             List<Order> dbOrders = new ArrayList<>();
             List<Order> confirmed = orderDao.findByStatus(OrderStatus.CONFIRMED);
             if (confirmed != null) dbOrders.addAll(confirmed);
@@ -163,98 +167,53 @@ public class DeliveryOrderManager {
             if (pending != null) dbOrders.addAll(pending);
 
             for (Order o : dbOrders) {
+                if (completedOrderIds.contains(o.getOrderId())) {
+                    continue;
+                }
                 if (activeDispatchOrder != null && activeDispatchOrder.getOrderId() == o.getOrderId()) {
                     continue;
                 }
-                Optional<User> userOpt = userDao.findById(o.getCustomerId());
-                Optional<Vehicle> vehicleOpt = vehicleDao.findById(o.getVehicleId());
-
-                String rName = userOpt.map(User::getFullName).orElse("Valued Customer");
-                String rPhone = userOpt.map(User::getPhone).orElse("+91 98765 00003");
-                String cModel = vehicleOpt.map(v -> v.getModel().replace(" ", "_")).orElse("Porsche_718");
-                String cPlate = vehicleOpt.map(Vehicle::getLicensePlate).orElse("AP 39 DL 1001");
-                String seats = vehicleOpt.map(v -> v.getSeats() + " Seats").orElse("2 Seats");
-                String power = "4.0 L Twin-Turbo";
-                String speed = "320 km/h";
-
-                boolean isChauffeur = (o.getRentalMode() == com.example.car_rental_sys.model.RentalMode.WITH_DRIVER);
-                String startLoc;
-                double sLat, sLng;
-                String destLoc;
-                double dLat, dLng;
-
-                if (isChauffeur) {
-                    // Chauffeur Mode: Pick up client at their designated location and drive to destination / airport hub
-                    startLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
-                            ? o.getPickupLocation() : "Guntur Central";
-                    double[] sCoords = resolveCoordinates(startLoc, 16.3007, 80.4639);
-                    sLat = sCoords[0];
-                    sLng = sCoords[1];
-
-                    // Destination: return location if different, otherwise major transit hub (Vijayawada Junction / Airport)
-                    if (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc)) {
-                        destLoc = o.getReturnLocation();
-                    } else {
-                        destLoc = "Vijayawada Junction (BZA Hub)";
-                    }
-                    double[] dCoords = resolveCoordinates(destLoc, 16.5175, 80.6200);
-                    dLat = dCoords[0];
-                    dLng = dCoords[1];
-                } else {
-                    // Self-Drive Mode: Driver dispatches car from Fleet Depot to Customer's chosen handover point
-                    startLoc = "SRM AP Fleet Hub, Amaravati";
-                    sLat = 16.4632;
-                    sLng = 80.5078;
-
-                    destLoc = (o.getPickupLocation() != null && !o.getPickupLocation().isBlank())
-                            ? o.getPickupLocation() : "Guntur Central";
-                    if (destLoc.toLowerCase().contains("srm") || destLoc.toLowerCase().contains("amaravati")) {
-                        destLoc = (o.getReturnLocation() != null && !o.getReturnLocation().isBlank() && !o.getReturnLocation().equalsIgnoreCase(startLoc))
-                                ? o.getReturnLocation() : "Vijayawada Junction (BZA Hub)";
-                    }
-                    double[] dCoords = resolveCoordinates(destLoc, 16.3007, 80.4639);
-                    dLat = dCoords[0];
-                    dLng = dCoords[1];
+                DeliveryOrder dOrder = convertOrderToDeliveryOrder(o);
+                if (dOrder != null && result.stream().noneMatch(r -> r.getOrderId() == dOrder.getOrderId())) {
+                    result.add(dOrder);
                 }
-
-                DeliveryOrder dOrder = new DeliveryOrder(
-                        o.getOrderId(),
-                        o.getOrderNumber(),
-                        cModel,
-                        cPlate,
-                        rName,
-                        "VIP Client",
-                        "/com/example/car_rental_sys/image/avatar/1.png",
-                        seats,
-                        power,
-                        speed,
-                        startLoc,
-                        sLat, sLng,
-                        destLoc,
-                        dLat, dLng,
-                        o.getStartDate() != null ? o.getStartDate().toLocalDate().toString() : "2026-11-08",
-                        o.getEndDate() != null ? o.getEndDate().toLocalDate().toString() : "2026-11-15",
-                        "#0052d4", "#4364f7",
-                        rPhone
-                );
-                dOrder.setRentalMode(o.getRentalMode());
-                dOrder.setDemo(false);
-                result.add(dOrder);
             }
         } catch (Exception ignored) {
-            // Offline or table not populated yet; fallback to seeded list
+            // Offline or table not populated yet; fallback smoothly
         }
 
-        // 2. Add seeded demo orders ONLY if no real customer orders exist, preventing useless mock data clutter
-        if (result.isEmpty()) {
-            for (DeliveryOrder o : availableOrders) {
-                if (activeDispatchOrder == null || activeDispatchOrder.getOrderId() != o.getOrderId()) {
-                    result.add(o);
+        // 2. Also ensure newly booked customer order in StatusContainer is immediately included
+        if (StatusContainer.currentOrder != null) {
+            Order co = StatusContainer.currentOrder;
+            if ((co.getStatus() == OrderStatus.CONFIRMED || co.getStatus() == OrderStatus.PENDING)
+                    && !completedOrderIds.contains(co.getOrderId())
+                    && result.stream().noneMatch(r -> r.getOrderId() == co.getOrderId())
+                    && (activeDispatchOrder == null || activeDispatchOrder.getOrderId() != co.getOrderId())) {
+                DeliveryOrder dOrder = convertOrderToDeliveryOrder(co);
+                if (dOrder != null) {
+                    result.add(0, dOrder); // Highest priority: newly booked customer vehicle
                 }
+            }
+        }
+
+        // 3. Include any dynamically registered customer bookings
+        for (DeliveryOrder o : availableOrders) {
+            if (completedOrderIds.contains(o.getOrderId())) {
+                continue;
+            }
+            if (activeDispatchOrder != null && activeDispatchOrder.getOrderId() == o.getOrderId()) {
+                continue;
+            }
+            if (result.stream().noneMatch(r -> r.getOrderId() == o.getOrderId())) {
+                result.add(o);
             }
         }
 
         return result;
+    }
+
+    public synchronized boolean isOrderCompleted(int orderId) {
+        return completedOrderIds.contains(orderId);
     }
 
     public synchronized Optional<DeliveryOrder> findOrderById(int orderId) {
@@ -264,10 +223,20 @@ public class DeliveryOrderManager {
         return availableOrders.stream().filter(o -> o.getOrderId() == orderId).findFirst();
     }
 
+    public synchronized void setActiveDispatchOrder(DeliveryOrder order) {
+        this.activeDispatchOrder = order;
+        StatusContainer.activeDeliveryOrder = order;
+        if (order != null) {
+            StatusContainer.currentContinueOrderID = order.getOrderId();
+        }
+    }
+
     public synchronized void acceptOrder(DeliveryOrder order) {
         order.setStatus(OrderStatus.ACTIVE);
         availableOrders.removeIf(o -> o.getOrderId() == order.getOrderId());
         this.activeDispatchOrder = order;
+        StatusContainer.activeDeliveryOrder = order;
+        StatusContainer.currentContinueOrderID = order.getOrderId();
 
         // Sync status to database only for real orders (not demo mock orders)
         if (!order.isDemo()) {
@@ -278,22 +247,30 @@ public class DeliveryOrderManager {
     }
 
     public synchronized void completeActiveDelivery() {
-        if (activeDispatchOrder != null) {
-            DeliveryOrder order = activeDispatchOrder;
-            OrderStatus nextStatus = (order.getRentalMode() == RentalMode.SELF_DRIVE)
+        DeliveryOrder order = activeDispatchOrder;
+        if (order == null && StatusContainer.activeDeliveryOrder != null) {
+            order = StatusContainer.activeDeliveryOrder;
+        }
+
+        if (order != null) {
+            final DeliveryOrder targetOrder = order;
+            completedOrderIds.add(targetOrder.getOrderId());
+            availableOrders.removeIf(o -> o.getOrderId() == targetOrder.getOrderId());
+
+            OrderStatus nextStatus = (targetOrder.getRentalMode() == RentalMode.SELF_DRIVE)
                     ? OrderStatus.ON_RENT
                     : OrderStatus.COMPLETED;
 
-            order.setStatus(nextStatus);
-            if (StatusContainer.currentOrder != null && StatusContainer.currentOrder.getOrderId() == order.getOrderId()) {
+            targetOrder.setStatus(nextStatus);
+            if (StatusContainer.currentOrder != null && StatusContainer.currentOrder.getOrderId() == targetOrder.getOrderId()) {
                 StatusContainer.currentOrder.setStatus(nextStatus);
             }
-            if (!order.isDemo()) {
+            if (!targetOrder.isDemo()) {
                 try {
-                    DAOFactory.getInstance().getOrderDAO().updateStatus(order.getOrderId(), nextStatus);
+                    DAOFactory.getInstance().getOrderDAO().updateStatus(targetOrder.getOrderId(), nextStatus);
                     // If it was with driver and now completed, release vehicle to AVAILABLE
                     if (nextStatus == OrderStatus.COMPLETED) {
-                        DAOFactory.getInstance().getOrderDAO().findById(order.getOrderId()).ifPresent(dbOrder -> {
+                        DAOFactory.getInstance().getOrderDAO().findById(targetOrder.getOrderId()).ifPresent(dbOrder -> {
                             try {
                                 DAOFactory.getInstance().getVehicleDAO().updateStatus(dbOrder.getVehicleId(), VehicleStatus.AVAILABLE);
                             } catch (Exception ignored) {}
@@ -301,19 +278,27 @@ public class DeliveryOrderManager {
                     }
                 } catch (Exception ignored) {}
             }
-            this.activeDispatchOrder = null;
         }
+        this.activeDispatchOrder = null;
+        StatusContainer.activeDeliveryOrder = null;
+        StatusContainer.currentContinueOrderID = -1;
     }
 
     public synchronized void cancelDispatchForOrder(int orderId) {
+        completedOrderIds.add(orderId);
         availableOrders.removeIf(o -> o.getOrderId() == orderId);
         if (activeDispatchOrder != null && activeDispatchOrder.getOrderId() == orderId) {
             activeDispatchOrder.setStatus(OrderStatus.CANCELLED);
             this.activeDispatchOrder = null;
         }
+        if (StatusContainer.activeDeliveryOrder != null && StatusContainer.activeDeliveryOrder.getOrderId() == orderId) {
+            StatusContainer.activeDeliveryOrder = null;
+            StatusContainer.currentContinueOrderID = -1;
+        }
     }
 
     public synchronized void dismissOrder(int orderId) {
+        completedOrderIds.add(orderId);
         availableOrders.removeIf(o -> o.getOrderId() == orderId);
     }
 
@@ -322,12 +307,13 @@ public class DeliveryOrderManager {
     }
 
     public synchronized boolean hasActiveDispatch() {
-        return activeDispatchOrder != null;
+        return activeDispatchOrder != null && activeDispatchOrder.getStatus() == OrderStatus.ACTIVE;
     }
 
     public synchronized void resetAll() {
         activeDispatchOrder = null;
-        seedInitialDeliveryFleet();
+        availableOrders.clear();
+        completedOrderIds.clear();
     }
 
     public static double[] resolveCoordinates(String locationName, double defaultLat, double defaultLng) {
