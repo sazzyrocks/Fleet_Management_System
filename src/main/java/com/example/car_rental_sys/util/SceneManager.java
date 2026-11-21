@@ -71,6 +71,11 @@ public final class SceneManager {
             FXMLLoader loader = new FXMLLoader(resource);
             Parent root = loader.load();
 
+            Object ctrl = loader.getController();
+            if (ctrl instanceof com.example.car_rental_sys.controllers.Controller) {
+                com.example.car_rental_sys.StatusContainer.currentPageController = (com.example.car_rental_sys.controllers.Controller) ctrl;
+            }
+
             if (primaryStage == null) {
                 LOGGER.severe("Primary stage is not initialized in SceneManager.");
                 return;
