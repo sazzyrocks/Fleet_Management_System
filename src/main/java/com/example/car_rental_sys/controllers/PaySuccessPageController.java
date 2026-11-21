@@ -14,6 +14,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.util.Duration;
 
 import java.net.URL;
@@ -24,6 +26,8 @@ import java.util.logging.Logger;
  * Controller for Payment Success Confirmation Screen.
  * Plays the celebratory supercar animation video with native audio,
  * displays reservation confirmation telemetry, and auto-navigates to customer orders.
+ * Plays the celebratory supercar animation video via HTML5 WebView with sound,
+ * and auto-navigates to customer orders upon completion or skip.
  */
 public class PaySuccessPageController extends Controller {
 
@@ -36,6 +40,7 @@ public class PaySuccessPageController extends Controller {
     @FXML private Label orderTitleLabel;
     @FXML private Label orderSubtitleLabel;
     @FXML private Button btnViewOrders;
+    @FXML private WebView webview;
     @FXML private Button btnSkip;
 
     private MediaPlayer videoPlayer;
@@ -49,6 +54,7 @@ public class PaySuccessPageController extends Controller {
         screenLoadTime = System.currentTimeMillis();
         populateOrderSummary();
         playCelebrationVideo();
+        loadCelebrationAnimation();
         setupKeyHandlers();
     }
 
@@ -62,13 +68,23 @@ public class PaySuccessPageController extends Controller {
             }
         } catch (Exception ignored) {}
     }
+    private void loadCelebrationAnimation() {
+        if (webview == null) return;
 
     private void playCelebrationVideo() {
         try {
             URL videoUrl = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video2.mp4");
             if (videoUrl == null) {
                 videoUrl = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/video.mp4");
+        WebEngine engine = webview.getEngine();
+        engine.setJavaScriptEnabled(true);
+
+        // Listen for JavaScript alert commands from index.html (e.g. alert("CLOSE_PAY_SUCCESS"))
+        engine.setOnAlert(event -> {
+            if ("CLOSE_PAY_SUCCESS".equals(event.getData())) {
+                Platform.runLater(this::handleViewOrders);
             }
+        });
 
             if (videoUrl != null) {
                 Media media = new Media(videoUrl.toExternalForm());
@@ -113,6 +129,14 @@ public class PaySuccessPageController extends Controller {
         } catch (Throwable t) {
             LOGGER.log(Level.WARNING, "Failed to initialize native video player: " + t.getMessage(), t);
             fallbackToAudioAndCard();
+        // Load the celebration HTML5 video page
+        URL resource = getClass().getResource("/com/example/car_rental_sys/html/paySuccess/index.html");
+        if (resource != null) {
+            engine.load(resource.toExternalForm());
+        } else {
+            LOGGER.warning("paySuccess index.html not found, fallback to orders in 3s");
+            scheduleAutoNav(3);
+            return;
         }
     }
 
@@ -131,6 +155,8 @@ public class PaySuccessPageController extends Controller {
         } catch (Throwable ignored) {}
 
         scheduleAutoNav(6);
+        // Global maximum safety timer (22s) so customer is never stuck
+        scheduleAutoNav(22);
     }
 
     private void showCelebrationCard() {
@@ -177,9 +203,12 @@ public class PaySuccessPageController extends Controller {
 
         // Clean up media players to release audio hardware and stop background sounds
         if (videoPlayer != null) {
+        // Clean up webview to release video and audio resources
+        if (webview != null) {
             try {
                 videoPlayer.stop();
                 videoPlayer.dispose();
+                webview.getEngine().load(null);
             } catch (Throwable ignored) {}
             videoPlayer = null;
         }
@@ -206,6 +235,9 @@ public class PaySuccessPageController extends Controller {
                 mainPane.setOnKeyPressed(event -> {
                     // Do NOT allow ENTER to skip (ENTER is used to submit payment)
                     if (event.getCode() == KeyCode.ESCAPE || event.getCode() == KeyCode.SPACE) {
+                    if (event.getCode() == KeyCode.SPACE
+                            || event.getCode() == KeyCode.ENTER
+                            || event.getCode() == KeyCode.ESCAPE) {
                         handleViewOrders();
                     }
                 });
