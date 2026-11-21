@@ -86,12 +86,6 @@ public class DrivingModeController extends Controller {
     private Label climateTempLabel;
 
     @FXML
-    private Pane tempUpBtn;
-
-    @FXML
-    private Pane tempDownBtn;
-
-    @FXML
     private Pane seatCardPane;
     @FXML
     private Pane seatIconBox;
@@ -99,10 +93,6 @@ public class DrivingModeController extends Controller {
     private Label seatPresetLabel;
     @FXML
     private Label seatAngleLabel;
-    @FXML
-    private Pane seatUpBtn;
-    @FXML
-    private Pane seatDownBtn;
 
     @FXML
     private Pane ambientCardPane;
@@ -112,8 +102,6 @@ public class DrivingModeController extends Controller {
     private Label ambientModeLabel;
     @FXML
     private Label ambientColorNameLabel;
-    @FXML
-    private Pane ambientCycleBtn;
 
     // Interactive Cockpit State
     private int currentTemp = 24;
@@ -169,11 +157,10 @@ public class DrivingModeController extends Controller {
         WebEngine engine = cockpitWebView.getEngine();
         engine.setJavaScriptEnabled(true);
 
-        DeliveryOrder initialOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
-        if (initialOrder == null && StatusContainer.activeDeliveryOrder != null) {
-            initialOrder = StatusContainer.activeDeliveryOrder;
+        DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
+        if (activeOrder == null && StatusContainer.activeDeliveryOrder != null) {
+            activeOrder = StatusContainer.activeDeliveryOrder;
         }
-        final DeliveryOrder activeOrder = initialOrder;
 
         double startLat = 16.4632;
         double startLng = 80.5078;
@@ -222,15 +209,11 @@ public class DrivingModeController extends Controller {
                     });
                 }
             } else if ("ARRIVED".equals(data)) {
-                final DeliveryOrder orderRef = activeOrder;
                 Platform.runLater(() -> {
                     if (distanceLeftLabel != null) distanceLeftLabel.setText("0 km left");
                     if (timeLeftLabel != null) timeLeftLabel.setText("Arrived");
                     updateProgressBar(1.0);
-                    String arrivedMsg = (orderRef != null && orderRef.isChauffeur())
-                            ? "You have arrived at the passenger destination:\n" + finalDest
-                            : "You have arrived at the customer delivery point:\n" + finalDest;
-                    AlertHelper.showInfo("Destination Reached", arrivedMsg);
+                    AlertHelper.showInfo("Destination Reached", "You have arrived at the passenger pickup point:\n" + finalDest);
                 });
             }
         });
@@ -288,11 +271,7 @@ public class DrivingModeController extends Controller {
 
     @FXML
     private void finishDeliveryClicked(MouseEvent event) {
-        DeliveryOrder initialOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
-        if (initialOrder == null && StatusContainer.activeDeliveryOrder != null) {
-            initialOrder = StatusContainer.activeDeliveryOrder;
-        }
-        final DeliveryOrder activeOrder = initialOrder;
+        DeliveryOrder activeOrder = DeliveryOrderManager.getInstance().getActiveDispatchOrder();
         boolean isChauffeur = (activeOrder != null && activeOrder.isChauffeur());
 
         String confirmMsg = isChauffeur
@@ -301,20 +280,12 @@ public class DrivingModeController extends Controller {
 
         MessageFrame messageFrame = new MessageFrame(MessageFrameType.CONFIRM, confirmMsg, "Confirm Action");
         messageFrame.setSuccessCallbackFunc((i) -> {
-            try {
-                DeliveryOrderManager.getInstance().completeActiveDelivery();
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-            try {
-                MusicPlayerController.stopPlayback();
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
+            DeliveryOrderManager.getInstance().completeActiveDelivery();
+            MusicPlayerController.stopPlayback();
             StatusContainer.currentContinueOrderID = -1;
             StatusContainer.activeDeliveryOrder = null;
             messageFrame.close();
-            Platform.runLater(() -> SceneManager.switchScene("driverServicePage.fxml"));
+            SceneManager.switchScene("driverServicePage.fxml");
             return null;
         });
         messageFrame.setFailedCallbackFunc((i) -> {
@@ -326,7 +297,6 @@ public class DrivingModeController extends Controller {
 
     @FXML
     private void backToSettingPage(MouseEvent event) {
-        StatusContainer.settingsOrigin = "drivingModePage.fxml";
         SceneManager.switchScene("SettingPage.fxml");
     }
 

@@ -1,6 +1,5 @@
 package com.example.car_rental_sys.controllers;
 
-import com.example.car_rental_sys.StatusContainer;
 import com.example.car_rental_sys.model.Role;
 import com.example.car_rental_sys.model.User;
 import com.example.car_rental_sys.service.ServiceFactory;
@@ -155,16 +154,7 @@ public class MiddleBarController {
     }
 
     private void handleBackNavigation() {
-        if ("drivingModePage.fxml".equals(StatusContainer.settingsOrigin)) {
-            StatusContainer.settingsOrigin = null;
-            com.example.car_rental_sys.util.SceneManager.switchScene("drivingModePage.fxml");
-            return;
-        }
-
         User currentUser = ServiceFactory.getInstance().getAuthService().getCurrentUser();
-        if (currentUser == null) {
-            currentUser = StatusContainer.currentUser;
-        }
         Role role = currentUser != null ? currentUser.getRole() : null;
 
         if (role == Role.DRIVER) {

@@ -266,10 +266,6 @@ public final class DatabaseInitializer {
         ensureColumnExists(conn, "users", "date_of_birth", "VARCHAR(20) NULL");
         ensureColumnExists(conn, "users", "address", "VARCHAR(255) NULL");
         ensureColumnExists(conn, "users", "bio", "TEXT NULL");
-        ensureColumnExists(conn, "orders", "rental_mode", "VARCHAR(20) DEFAULT 'SELF_DRIVE'");
-        try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("ALTER TABLE `orders` MODIFY COLUMN `status` ENUM('PENDING', 'CONFIRMED', 'ACTIVE', 'ON_RENT', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING'");
-        } catch (Exception ignored) {}
     }
 
     private static void ensureColumnExists(Connection conn, String table, String column, String colDef) {

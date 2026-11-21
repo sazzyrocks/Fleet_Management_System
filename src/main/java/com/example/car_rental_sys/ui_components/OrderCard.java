@@ -58,6 +58,16 @@ public class OrderCard extends Pane {
         plateLabel.setFont(Font.font("System", 12));
         plateLabel.setStyle("-fx-text-fill: #86909c;");
 
+        // 2B. Optional [DEMO] badge if fallback data
+        Label demoBadge = null;
+        if (order.isDemo()) {
+            demoBadge = new Label("DEMO");
+            demoBadge.setLayoutX(100);
+            demoBadge.setLayoutY(34);
+            demoBadge.setFont(Font.font("System", FontWeight.BOLD, 9));
+            demoBadge.setStyle("-fx-background-color: rgba(255, 125, 0, 0.18); -fx-text-fill: #ff7d00; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
+        }
+
         // 3. Eye / Dismiss Button
         Pane hideBtn = createActionButton("/com/example/car_rental_sys/image/UI/hide.png", "#78909c", 172, 12);
         hideBtn.setOnMouseClicked(e -> {
@@ -89,13 +99,11 @@ public class OrderCard extends Pane {
         carImg.setPreserveRatio(true);
         carImg.setScaleX(-1); // Flip horizontally to match original catalog style
 
-        Image carImage = ImageTools.getCarImage(order.getCarModel(), order.getCarImagePath());
+        Image carImage = ImageTools.getCarImage(order.getCarModel());
         if (carImage != null && !carImage.isError()) {
             carImg.setImage(carImage);
         } else {
-            String carRes = (order.getCarImagePath() != null && !order.getCarImagePath().isBlank())
-                    ? order.getCarImagePath()
-                    : "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png";
+            String carRes = "/com/example/car_rental_sys/image/cars/" + order.getCarModel() + ".png";
             try (InputStream stream = getClass().getResourceAsStream(carRes)) {
                 if (stream != null) {
                     carImg.setImage(new Image(stream));
@@ -104,7 +112,6 @@ public class OrderCard extends Pane {
         }
 
         carThumbBox.getChildren().add(carImg);
-        carThumbBox.setMouseTransparent(true);
 
         // 6. Dates Column
         Label startDateLabel = new Label(order.getStartDate());
@@ -112,38 +119,34 @@ public class OrderCard extends Pane {
         startDateLabel.setLayoutY(70);
         startDateLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
         startDateLabel.setStyle("-fx-text-fill: #1d2129;");
-        startDateLabel.setMouseTransparent(true);
 
         Label toLabel = new Label("To");
         toLabel.setLayoutX(172);
         toLabel.setLayoutY(89);
         toLabel.setFont(Font.font("System", 11));
         toLabel.setStyle("-fx-text-fill: #86909c;");
-        toLabel.setMouseTransparent(true);
 
         Label endDateLabel = new Label(order.getEndDate());
         endDateLabel.setLayoutX(146);
         endDateLabel.setLayoutY(108);
         endDateLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
         endDateLabel.setStyle("-fx-text-fill: #1d2129;");
-        endDateLabel.setMouseTransparent(true);
 
         // 7. Rental Mode Badge
         Label modeBadge = new Label(order.isChauffeur() ? "CHAUFFEUR" : "SELF-DRIVE");
         modeBadge.setLayoutX(146);
         modeBadge.setLayoutY(48);
         modeBadge.setFont(Font.font("System", FontWeight.BOLD, 9));
-        modeBadge.setMouseTransparent(true);
         if (order.isChauffeur()) {
             modeBadge.setStyle("-fx-background-color: rgba(114, 46, 209, 0.15); -fx-text-fill: #722ED1; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
         } else {
             modeBadge.setStyle("-fx-background-color: rgba(0, 180, 42, 0.15); -fx-text-fill: #00b42a; -fx-background-radius: 4; -fx-padding: 1 5 1 5;");
         }
 
-        modelLabel.setMouseTransparent(true);
-        plateLabel.setMouseTransparent(true);
-
         getChildren().addAll(modelLabel, plateLabel, hideBtn, chooseBtn, carThumbBox, modeBadge, startDateLabel, toLabel, endDateLabel);
+        if (demoBadge != null) {
+            getChildren().add(demoBadge);
+        }
 
         // Click on card selects this order
         setOnMouseClicked(e -> {

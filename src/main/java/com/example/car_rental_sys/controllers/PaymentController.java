@@ -657,14 +657,9 @@ public class PaymentController extends Controller {
                     LOGGER.warning("Booking confirmation note: " + confEx.getMessage());
                 }
 
-                // 4. Update status container and dispatch queue for drivers
+                // 4. Update status container
                 com.example.car_rental_sys.StatusContainer.currentOrder = order;
                 com.example.car_rental_sys.StatusContainer.currentOrderID = order.getOrderId();
-                try {
-                    com.example.car_rental_sys.service.DeliveryOrderManager.getInstance().registerNewBooking(order);
-                } catch (Throwable regEx) {
-                    LOGGER.warning("Delivery dispatch registration note: " + regEx.getMessage());
-                }
 
                 final Order confirmedOrder = order;
                 Platform.runLater(() -> {

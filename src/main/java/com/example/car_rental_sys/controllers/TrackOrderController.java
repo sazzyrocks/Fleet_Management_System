@@ -55,9 +55,6 @@ public class TrackOrderController extends Controller {
     private ImageView locationIcon;
 
     @FXML
-    private javafx.scene.Node trackingStatus;
-
-    @FXML
     private TrackingStatusController trackingStatusController;
 
     public static void setSelectedOrder(Order order) {

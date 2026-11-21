@@ -48,8 +48,6 @@ public class StatusContainer {
     public static boolean isNetworkConnected = true;
     public static boolean isDataFileComplete = true;
 
-    public static String settingsOrigin = null;
-
     private StatusContainer() {
         // Static holder
     }

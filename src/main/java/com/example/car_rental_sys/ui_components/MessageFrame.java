@@ -22,7 +22,6 @@ import java.util.function.Function;
  * Authentic floating modal toast / alert notification.
  */
 public class MessageFrame {
-    private final java.util.concurrent.atomic.AtomicBoolean handled = new java.util.concurrent.atomic.AtomicBoolean(false);
     double transparent = 0.7;
     int titleSpace = 5;
 
@@ -164,10 +163,9 @@ public class MessageFrame {
 
     private void addSingleBtn() {
         Button btn = new Button("OK");
-        btn.setStyle("-fx-background-color: #165dff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px; -fx-cursor: hand;");
+        btn.setStyle("-fx-background-color: #165dff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px;");
         btn.setPrefSize(100, 32);
         btn.setOnAction(e -> callSuccessCallback());
-        btn.setOnMouseClicked(e -> callSuccessCallback());
 
         BorderPane borderPane = new BorderPane();
         borderPane.setCenter(btn);
@@ -177,15 +175,13 @@ public class MessageFrame {
 
     private void addTwoBtn() {
         Button btn1 = new Button("OK");
-        btn1.setStyle("-fx-background-color: #165dff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px; -fx-cursor: hand;");
+        btn1.setStyle("-fx-background-color: #165dff; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px;");
         btn1.setPrefSize(100, 32);
-        btn1.setOnAction(e -> callSuccessCallback());
         btn1.setOnMouseClicked(e -> callSuccessCallback());
 
         Button btn2 = new Button("Cancel");
-        btn2.setStyle("-fx-background-color: #f53f3f; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px; -fx-cursor: hand;");
+        btn2.setStyle("-fx-background-color: #f53f3f; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6px;");
         btn2.setPrefSize(100, 32);
-        btn2.setOnAction(e -> callFailedCallback());
         btn2.setOnMouseClicked(e -> callFailedCallback());
 
         HBox hBox = new HBox(20);
@@ -199,45 +195,23 @@ public class MessageFrame {
     }
 
     public void close() {
-        if (javafx.application.Platform.isFxApplicationThread()) {
-            if (mainPane != null && mainBGCPane != null) {
-                mainPane.getChildren().remove(mainBGCPane);
-            }
-        } else {
-            javafx.application.Platform.runLater(() -> {
-                if (mainPane != null && mainBGCPane != null) {
-                    mainPane.getChildren().remove(mainBGCPane);
-                }
-            });
+        if (mainPane != null) {
+            mainPane.getChildren().remove(mainBGCPane);
         }
     }
 
     private void callSuccessCallback() {
-        if (!handled.compareAndSet(false, true)) return;
-        try {
-            if (this.successCallback != null) {
-                this.successCallback.apply(1);
-            }
-        } catch (Throwable t) {
-            java.util.logging.Logger.getLogger(MessageFrame.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Error in MessageFrame success callback", t);
-        } finally {
-            close();
+        if (this.successCallback != null) {
+            this.successCallback.apply(1);
         }
+        close();
     }
 
     private void callFailedCallback() {
-        if (!handled.compareAndSet(false, true)) return;
-        try {
-            if (this.failedCallback != null) {
-                this.failedCallback.apply(1);
-            }
-        } catch (Throwable t) {
-            java.util.logging.Logger.getLogger(MessageFrame.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Error in MessageFrame failed callback", t);
-        } finally {
-            close();
+        if (this.failedCallback != null) {
+            this.failedCallback.apply(1);
         }
+        close();
     }
 
     public void setSuccessCallbackFunc(Function<Integer, Void> func) {

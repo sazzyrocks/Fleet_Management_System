@@ -29,7 +29,6 @@ public class DeliveryOrder implements Serializable {
     private String darkColor;
     private String lightColor;
     private String renterPhone;
-    private String carImagePath;
     private OrderStatus status;
     private RentalMode rentalMode = RentalMode.SELF_DRIVE;
     private boolean isDemo = false;
@@ -287,13 +286,5 @@ public class DeliveryOrder implements Serializable {
 
     public boolean isChauffeur() {
         return getRentalMode() == RentalMode.WITH_DRIVER;
-    }
-
-    public String getCarImagePath() {
-        return carImagePath;
-    }
-
-    public void setCarImagePath(String carImagePath) {
-        this.carImagePath = carImagePath;
     }
 }
