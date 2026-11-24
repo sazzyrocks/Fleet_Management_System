@@ -178,7 +178,18 @@ public class PaySuccessPageController extends Controller {
                 videoPlayer.setOnError(() -> {
                     LOGGER.warning("Celebration video playback encountered error: " +
                             (videoPlayer.getError() != null ? videoPlayer.getError().getMessage() : "unknown"));
+                    showCelebrationCard();
+                    scheduleAutoNav(8);
                 });
+
+                // Fallback guard: if hardware video decoder fails to transition to PLAYING within 1.5s, reveal card immediately
+                PauseTransition fallbackCheck = new PauseTransition(Duration.seconds(1.5));
+                fallbackCheck.setOnFinished(e -> {
+                    if (videoPlayer == null || videoPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
+                        showCelebrationCard();
+                    }
+                });
+                fallbackCheck.play();
 
                 // Timed reveal: The video is 16.06s. At 16.2s, reveal the card cleanly
                 videoEndTimer = new PauseTransition(Duration.seconds(16.2));
@@ -238,8 +249,8 @@ public class PaySuccessPageController extends Controller {
     @FXML
     public void handleViewOrders() {
         if (isNavigating) return;
-        // Minimum display guard: Prevent accidental instant skips from leftover keys or clicks
-        if (System.currentTimeMillis() - screenLoadTime < 1800) {
+        // Minimum display guard: Prevent accidental instant skips from leftover keys or clicks (unless card is already revealed)
+        if (!cardShown && System.currentTimeMillis() - screenLoadTime < 1800) {
             LOGGER.info("Skipping premature navigation request (minimum display guard active)");
             return;
         }

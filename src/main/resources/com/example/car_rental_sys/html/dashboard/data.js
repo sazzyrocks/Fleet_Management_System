@@ -1,6 +1,6 @@
 let avatarFolderPath = "../../../image/avatar";
-let headerData = [0,64295,298605];
-let lineData = [{ product: 'Tue', Paid: 0, Delivered: 0, Finished: 0},{ product: 'Wed', Paid: 0, Delivered: 0, Finished: 0},{ product: 'Thu', Paid: 0, Delivered: 0, Finished: 0},{ product: 'Fri', Paid: 0, Delivered: 0, Finished: 0},{ product: 'Sat', Paid: 1, Delivered: 1, Finished: 1},{ product: 'Sun', Paid: 4, Delivered: 2, Finished: 1},{ product: 'Mon', Paid: 9, Delivered: 7, Finished: 3}];
-let pieData = [{value: 4, name: 'Canceled'},{value: 9, name: 'Paid'},{value: 3, name: 'Driving'},{value: 7, name: 'Delivered'},{value: 3, name: 'Finished'}];
-let tableData = [["Aarav-Sharma",9575832245,"2026-07-22",1801],["Rohan-Verma",7722944471,"2026-09-20",2356],["Ananya-Reddy",2518667172,"2026-11-04",2111],["Vikram-Singh",5130341155,"2026-07-21",2776],["Priya-Patel",1916032978,"2026-10-09",3782],];
-let activityCardData = [[11,"Priya-Patel","02:11","Delivering"],[11,"Priya-Patel","02:11","Delivering"],[11,"Priya-Patel","02:12","Delivered"],[10,"Vikram-Singh","16:38","Delivering"],[10,"Vikram-Singh","16:38","Delivering"],[10,"Vikram-Singh","16:39","Delivered"],];
+let headerData = [8513, 189533, 219221];
+let lineData = [{ product: 'Wed', Paid: 6, Delivered: 3, Finished: 2 }, { product: 'Thu', Paid: 9, Delivered: 7, Finished: 4 }, { product: 'Fri', Paid: 11, Delivered: 8, Finished: 7 }, { product: 'Sat', Paid: 17, Delivered: 14, Finished: 10 }, { product: 'Sun', Paid: 10, Delivered: 10, Finished: 5 }, { product: 'Mon', Paid: 5, Delivered: 5, Finished: 2 }, { product: 'Tue', Paid: 1, Delivered: 0, Finished: 0 }];
+let pieData = [{ value: 2, name: 'Canceled' }, { value: 14, name: 'Paid' }, { value: 1, name: 'Driving' }, { value: 19, name: 'Delivered' }, { value: 34, name: 'Finished' }];
+let tableData = [["Aarav-Sharma", 2184455471, "2026-11-24", 8513], ["Ananya-Reddy", 6673725949, "2026-11-23", 2356], ["Rohan-Verma", 6673758840, "2026-11-23", 1801], ["Aarav-Sharma", 6673792382, "2026-11-23", 1850], ["Priya-Patel", 6674471716, "2026-11-23", 3100]];
+let activityCardData = [[1, "Aarav-Sharma", "14:17", "Delivering"], [5, "Ananya-Reddy", "23:56", "Delivering"], [4, "Rohan-Verma", "23:56", "Delivering"], [3, "Aarav-Sharma", "23:56", "Delivering"], [6, "Priya-Patel", "23:56", "Delivered"], [5, "Ananya-Reddy", "23:56", "Delivered"]];
