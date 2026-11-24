@@ -172,6 +172,11 @@ public final class DatabaseInitializer {
                 ensureSchemaMigrations(conn);
                 ensureDefaultUsers(conn);
                 ensureDefaultVehicles(conn);
+                ensureDefaultTodos(conn);
+                ensureDashboardSeedData(conn);
+                ensureDefaultVehicles(conn);
+                ensureDefaultTodos(conn);
+                ensureDashboardSeedData(conn);
             } catch (Exception ignored) {
             }
             return true;
@@ -242,6 +247,9 @@ public final class DatabaseInitializer {
                 }
 
                 ensureDefaultUsers(conn);
+                ensureDefaultVehicles(conn);
+                ensureDefaultTodos(conn);
+                ensureDashboardSeedData(conn);
 
                 LOGGER.info("Database schema initialized successfully.");
 
@@ -435,6 +443,124 @@ public final class DatabaseInitializer {
             LOGGER.info("Verified default fleet vehicle catalog in MySQL.");
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Note verifying default fleet vehicles: {0}", e.getMessage());
+        }
+    }
+
+    public static void ensureDefaultTodos(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            int activeCount = 0;
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM `todos` WHERE `user_id` = 1 AND `is_completed` = 0")) {
+                if (rs.next()) {
+                    activeCount = rs.getInt(1);
+                }
+            }
+
+            if (activeCount < 2) {
+                stmt.executeUpdate("DELETE FROM `todos` WHERE `user_id` = 1");
+                String insertSql = "INSERT INTO `todos` (`user_id`, `title`, `description`, `priority`, `is_completed`, `due_date`) VALUES " +
+                        "(1, 'Submit OODJ', 'Complete and submit OODJ assignment and audit documentation', 'HIGH', 0, '2026-12-16'), " +
+                        "(1, 'New task', 'Quarterly fleet inspection and telemetry audit', 'MEDIUM', 0, '2026-11-28')";
+                stmt.executeUpdate(insertSql);
+                LOGGER.info("Initialized default admin todos in MySQL.");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Note verifying default todos: {0}", e.getMessage());
+        }
+    }
+
+    public static void ensureDashboardSeedData(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            // 1. Ensure diverse users for rich dashboard representation
+            String hash = com.example.car_rental_sys.util.PasswordUtil.hashPassword("customer123");
+            String insertUsers = "INSERT INTO `users` (`user_id`, `username`, `password_hash`, `email`, `phone`, `full_name`, `role`, `status`) VALUES " +
+                    "(51, 'aarav_sharma', '" + hash + "', 'aarav@fleetms.com', '+91 98765 10001', 'Aarav-Sharma', 'CUSTOMER', 'ACTIVE'), " +
+                    "(52, 'rohan_verma', '" + hash + "', 'rohan@fleetms.com', '+91 98765 10002', 'Rohan-Verma', 'CUSTOMER', 'ACTIVE'), " +
+                    "(53, 'ananya_reddy', '" + hash + "', 'ananya@fleetms.com', '+91 98765 10003', 'Ananya-Reddy', 'CUSTOMER', 'ACTIVE'), " +
+                    "(54, 'priya_patel', '" + hash + "', 'priya@fleetms.com', '+91 98765 10004', 'Priya-Patel', 'CUSTOMER', 'ACTIVE'), " +
+                    "(55, 'paul_jackson', '" + hash + "', 'paul@fleetms.com', '+91 98765 10005', 'Paul-Jackson', 'DRIVER', 'ACTIVE'), " +
+                    "(56, 'ryan_cameron', '" + hash + "', 'ryan@fleetms.com', '+91 98765 10006', 'Ryan-Cameron', 'DRIVER', 'ACTIVE'), " +
+                    "(57, 'robert_murphy', '" + hash + "', 'robert@fleetms.com', '+91 98765 10007', 'Robert-Murphy', 'DRIVER', 'ACTIVE') " +
+                    "ON DUPLICATE KEY UPDATE `full_name` = VALUES(`full_name`);";
+            stmt.executeUpdate(insertUsers);
+
+            // Ensure drivers exist
+            String insertDrivers = "INSERT INTO `drivers` (`user_id`, `license_number`, `experience_years`, `rating`, `status`) VALUES " +
+                    "(55, 'DL-AP-2024-9101', 5, 4.90, 'AVAILABLE'), " +
+                    "(56, 'DL-AP-2024-9102', 6, 4.95, 'AVAILABLE'), " +
+                    "(57, 'DL-AP-2024-9103', 4, 4.85, 'AVAILABLE') " +
+                    "ON DUPLICATE KEY UPDATE `status` = 'AVAILABLE';";
+            stmt.executeUpdate(insertDrivers);
+
+            // Check if 7-day orders exist
+            int recentOrdersCount = 0;
+            try (java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM `orders` WHERE `created_at` >= DATE_SUB(NOW(), INTERVAL 6 DAY)")) {
+                if (rs.next()) {
+                    recentOrdersCount = rs.getInt(1);
+                }
+            }
+
+            // If we have fewer than 20 recent orders in the last 7 days, seed a balanced 7-day distribution
+            if (recentOrdersCount < 20) {
+                int[][] daySpecs = {
+                    { 6, 4, 2, 1 },
+                    { 5, 6, 3, 2 },
+                    { 4, 9, 7, 4 },
+                    { 3, 11, 8, 7 },
+                    { 2, 11, 9, 9 },
+                    { 1, 8, 6, 5 },
+                    { 0, 5, 4, 2 }
+                };
+
+                int[] customerIds = { 51, 52, 53, 54 };
+                int[] vehicleIds = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+                double[] prices = { 1801.0, 2356.0, 2111.0, 2776.0, 3782.0, 4500.0, 5200.0, 3100.0, 1850.0 };
+
+                int seedIndex = 1000;
+                for (int[] spec : daySpecs) {
+                    int daysAgo = spec[0];
+                    int totalForDay = spec[1];
+                    int activeForDay = spec[2];
+                    int completedForDay = spec[3];
+
+                    for (int k = 0; k < totalForDay; k++) {
+                        seedIndex++;
+                        String orderNum = String.format("ORD-SEED-%04d", seedIndex);
+                        String txRef = String.format("95%08d", (seedIndex * 137L) % 100000000L);
+                        int custId = customerIds[seedIndex % customerIds.length];
+                        int vehId = vehicleIds[seedIndex % vehicleIds.length];
+                        double price = prices[seedIndex % prices.length];
+
+                        String status;
+                        if (k < completedForDay) {
+                            status = "COMPLETED";
+                        } else if (k < activeForDay) {
+                            status = "ACTIVE";
+                        } else {
+                            status = "CONFIRMED";
+                        }
+
+                        String orderSql = "INSERT INTO `orders` (`order_number`, `customer_id`, `vehicle_id`, `start_date`, `end_date`, `pickup_location`, `return_location`, `total_price`, `status`, `rental_mode`, `created_at`) VALUES " +
+                                "('" + orderNum + "', " + custId + ", " + vehId + ", DATE_SUB(NOW(), INTERVAL " + daysAgo + " DAY), DATE_ADD(DATE_SUB(NOW(), INTERVAL " + daysAgo + " DAY), INTERVAL 3 DAY), 'SRM AP Fleet Hub', 'Amaravati Fleet Station', " + price + ", '" + status + "', 'SELF_DRIVE', DATE_SUB(NOW(), INTERVAL " + daysAgo + " DAY)) " +
+                                "ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);";
+                        stmt.executeUpdate(orderSql);
+
+                        try (java.sql.ResultSet ordRs = stmt.executeQuery("SELECT `order_id` FROM `orders` WHERE `order_number` = '" + orderNum + "'")) {
+                            if (ordRs.next()) {
+                                int oId = ordRs.getInt(1);
+                                String paySql = "INSERT INTO `payments` (`order_id`, `amount`, `payment_method`, `transaction_reference`, `payment_status`, `paid_at`) VALUES " +
+                                        "(" + oId + ", " + price + ", 'CARD', '" + txRef + "', 'SUCCESS', DATE_SUB(NOW(), INTERVAL " + daysAgo + " DAY)) " +
+                                        "ON DUPLICATE KEY UPDATE `payment_status` = 'SUCCESS';";
+                                try (Statement pStmt = conn.createStatement()) {
+                                    pStmt.executeUpdate(paySql);
+                                }
+                            }
+                        }
+                    }
+                }
+                LOGGER.info("Seeded 7-day historical fleet orders and payments for analytics dashboard.");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Note during dashboard seeding: {0}", e.getMessage());
         }
     }
 

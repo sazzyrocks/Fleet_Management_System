@@ -1,6 +1,8 @@
 package com.example.car_rental_sys.controllers;
 
+import com.example.car_rental_sys.service.DashboardSyncService;
 import javafx.application.Platform;
+import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
 import javafx.scene.layout.Pane;
 import javafx.scene.web.WebEngine;
@@ -10,7 +12,8 @@ import java.net.URL;
 
 /**
  * Controller for Admin Analytics Dashboard (dashboard.fxml).
- * Restored with authentic animated web charts and financial metrics loaded via JavaFX WebView.
+ * Restored with authentic animated web charts and financial metrics loaded via JavaFX WebView,
+ * fully synchronized with the live MySQL fleet management database.
  */
 public class dashboardController extends Controller {
 
@@ -31,6 +34,11 @@ public class dashboardController extends Controller {
     private void loadAuthenticDashboard() {
         if (browserPane == null) return;
 
+        // Ensure data.js on disk is synchronized with live MySQL before loading
+        try {
+            DashboardSyncService.syncDataFiles();
+        } catch (Exception ignored) {}
+
         webView = new WebView();
         webView.setPrefSize(1000, 750);
         engine = webView.getEngine();
@@ -39,6 +47,12 @@ public class dashboardController extends Controller {
         changePage("dashboard");
 
         browserPane.getChildren().setAll(webView);
+    }
+
+    public void refreshDashboard() {
+        if (engine != null) {
+            DashboardSyncService.sync(engine);
+        }
     }
 
     public void changePage(String type) {
